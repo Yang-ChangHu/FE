@@ -23,6 +23,8 @@ public:
 	//FE_solver_1D构造函数
 	FE_solver_1D(int a_,int b_,int n_,int gauss_type_,double ga_,double gb_,int basis_type_trial_,int basis_type_test_,int boundary_,double qbub_=0);
 
+	virtual void autoRun();
+
 	//计算P、Pb_trial、Pb_test:
 	virtual void Generate_PT();            //子类重写父类的虚函数或者纯虚函数，virtual关键字可删除也可不删除
 
@@ -32,10 +34,10 @@ public:
 	virtual void Generate_BoundaryNodes();
 
 	//组装A矩阵
-	virtual void Assemble_matrix_A(bool T=false);
+	virtual void Assemble_matrix_A();
 
 	//组装b向量
-	virtual void Assemble_b(bool T=false);
+	virtual void Assemble_b();
 
 	//处理边界条件
 	virtual void Treat_Boundary();
@@ -49,12 +51,11 @@ public:
 	//trial基函数
 	 double FE_basis_local_fun_trial(double x, int basis_index, int basis_der_x);
 
-	//virtual double FE_basis_local_fun_trial(double x, double y, int basis_index, int basis_der_x, int basis_der_y) ;
+
 
 	//test基函数
 	 double FE_basis_local_fun_test(double x, int basis_index, int basis_der_x);
 
-	//virtual double FE_basis_local_fun_test(double x, double y, int basis_index, int basis_der_x, int basis_der_y) ;
 
 	//计算高斯积分的权重和节点
 	virtual void Compute_Gauss(int n);

@@ -125,7 +125,7 @@ void FE_solver_1D::Generate_BoundaryNodes()
 	cout << this->boundary_nodes_ << endl;
 }
 //组装A矩阵
-void FE_solver_1D::Assemble_matrix_A(bool T)
+void FE_solver_1D::Assemble_matrix_A()
 {
 	/*************************************************
 	Function:       // Assemble_matrix_A
@@ -163,7 +163,7 @@ void FE_solver_1D::Assemble_matrix_A(bool T)
 	cout << this->a_matrix_ << endl;
 }
 //组装b向量
-void FE_solver_1D::Assemble_b(bool T)
+void FE_solver_1D::Assemble_b()
 {
 	/*************************************************
 	Function:       // Assemble_matrix_b
@@ -485,5 +485,12 @@ void FE_solver_1D::Print_message_normal()
 	cout << this->tb_trial_ << endl;
 
 	cout << "********************************" << endl;
+
+}
+
+
+
+void FE_solver_1D::autoRun()
+{
 
 }

@@ -1,23 +1,30 @@
-﻿#include "FE_solver_2D.h"
+﻿#include "FE_solver_2D_heat.h"
+#include"FE_solver.h"
 #include<math.h>
 #include <Eigen/Dense>
-using namespace Eigen;    
+using namespace Eigen;
 using namespace std;
 #include<iostream>
 
 
 
 
-FE_solver_2D::FE_solver_2D(int N1_, int N2_, int gauss_type_, double a_x, double a_y, double b_x, double b_y, int basis_type_trial_, int basis_type_test_)
+
+
+//非稳态
+FE_solver_2D_heat::FE_solver_2D_heat(double start, double end, double dt, int N1_, int N2_, int gauss_type_, double a_x, double a_y, double b_x, double b_y, int basis_type_trial_, int basis_type_test_)
 {
+	this->start_ = start;
+	this->end_ = end;
+	this->dt_ = dt;
 	this->N1_ = N1_;
 	this->N2_ = N2_;
 
 	this->gauss_type_ = gauss_type_;
-	
+
 	this->a_ = ArrayXd::Zero(2, 1);
 	this->a_ << a_x,
-				a_y;
+		a_y;
 
 	this->b_ = ArrayXd::Zero(2, 1);
 	this->b_ << b_x,
@@ -30,8 +37,7 @@ FE_solver_2D::FE_solver_2D(int N1_, int N2_, int gauss_type_, double a_x, double
 	this->number_of_gauss_points = 9;    //高斯插值点个数为9
 }
 
-
-void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角形网格  4 四边形
+void FE_solver_2D_heat::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角形网格  4 四边形
 {
 	switch (mesh_type)
 	{
@@ -44,7 +50,7 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 	}
 	case 4:
 	{
-		this->n_ =  N1_ * N2_;
+		this->n_ = N1_ * N2_;
 		this->n_m_ = (N1_ + 1) * (N2_ + 1);
 		this->vertices_ = MatrixXd::Zero(2, 4);
 		break;
@@ -56,13 +62,13 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 	RowVectorXd p2_tmp = VectorXd::LinSpaced(this->N2_ + 1, 0, 1);
 	for (int j = 0; j < (this->N1_ + 1); j++)
 	{
-		this->p_.block(0,j*((this->N2_)+1),1,this->N2_+1)= (this->p_.block(0, j * ((this->N2_) + 1), 1, this->N2_ + 1)).array()+j/((float)(this->N1_));
-		this->p_.block(1, j * ((this->N2_) + 1), 1, this->N2_ + 1)<< p2_tmp;
+		this->p_.block(0, j * ((this->N2_) + 1), 1, this->N2_ + 1) = (this->p_.block(0, j * ((this->N2_) + 1), 1, this->N2_ + 1)).array() + j / ((float)(this->N1_));
+		this->p_.block(1, j * ((this->N2_) + 1), 1, this->N2_ + 1) << p2_tmp;
 
 	}
 
 	//变换到实际区间
-	this->p_.row(0) = this->p_.row(0).array() * (this->b_(0,0) -this->a_(0,0))+this->a_(0,0);
+	this->p_.row(0) = this->p_.row(0).array() * (this->b_(0, 0) - this->a_(0, 0)) + this->a_(0, 0);
 	this->p_.row(1) = this->p_.row(1).array() * (this->b_(1, 0) - this->a_(1, 0)) + this->a_(1, 0);
 
 
@@ -76,7 +82,7 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 
 		//初始化前两个单元
 		this->t_(0, 0) = 1;
-		this->t_(1, 0) = this->N2_+2;
+		this->t_(1, 0) = this->N2_ + 2;
 		this->t_(2, 0) = 2;
 
 		this->t_(0, 1) = 2;
@@ -84,18 +90,18 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 		this->t_(2, 1) = this->N2_ + 3;
 
 		//int i = 2;
-		for (int i=2;i < this->n_;i++)
+		for (int i = 2; i < this->n_; i++)
 		{
-			if(i/(2*this->N2_)==0)
-			for (int j = 0; j < 3; j++)
-			{
-				this->t_(j, i) = this->t_(j, i - 2) + 1;
-			}
+			if (i / (2 * this->N2_) == 0)
+				for (int j = 0; j < 3; j++)
+				{
+					this->t_(j, i) = this->t_(j, i - 2) + 1;
+				}
 			else
 			{
 				for (int j = 0; j < 3; j++)
 				{
-					this->t_(j, i) = this->t_(j, i - 2*(this->N2_)) + 1+this->N2_;
+					this->t_(j, i) = this->t_(j, i - 2 * (this->N2_)) + 1 + this->N2_;
 				}
 			}
 		}
@@ -106,8 +112,8 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 	}
 
 	}
-	
-	
+
+
 	if (this->basis_type_trial_ == 201)   //二维线性奇函数
 	{
 		this->pb_trial_ = this->p_;
@@ -154,18 +160,18 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 
 	cout << "\t*****************" << endl;
 	cout << "\tT矩阵为" << endl;
-	cout << this->t_<< endl;
+	cout << this->t_ << endl;
 	cout << "\ttb_test_矩阵为" << endl;
 	cout << this->tb_test_ << endl;
 	cout << "\ttb_trial_矩阵为" << endl;
-	cout << this->tb_trial_<<endl;
+	cout << this->tb_trial_ << endl;
 }
-void  FE_solver_2D::Generate_PT()
+void  FE_solver_2D_heat::Generate_PT()
 {
 	//空实现，二维不用这个
 }
 
-void FE_solver_2D::Generate_BoundaryNodes()
+void FE_solver_2D_heat::Generate_BoundaryNodes()
 {
 	//生产边界边矩阵
 	Generate_boundary_edge();
@@ -176,7 +182,7 @@ void FE_solver_2D::Generate_BoundaryNodes()
 
 
 //边界边矩阵 （有限元概念）
-void FE_solver_2D::Generate_boundary_edge()
+void FE_solver_2D_heat::Generate_boundary_edge()
 {
 	//nbe:边界边的条数，nbe=2*N1*N2,网格概念
 	//我们处理狄利克雷等边界条件，是在有限元节点上已知
@@ -241,7 +247,7 @@ void FE_solver_2D::Generate_boundary_edge()
 }
 
 //边界点矩阵（有限元概念）
-void FE_solver_2D::Generate_boundary_nodes()
+void FE_solver_2D_heat::Generate_boundary_nodes()
 {
 	//nbn_:边界节点数 nbn=2*(n1_+n2_)  有限元概念
 	this->nbn_ = 2 * (this->N1_ + this->N2_);
@@ -253,13 +259,14 @@ void FE_solver_2D::Generate_boundary_nodes()
 	cout << this->boundary_nodes_ << endl;
 }
 
-void FE_solver_2D::Assemble_matrix_A()
+void FE_solver_2D_heat::Assemble_matrix_A()
 {
 	cout << "\tAssemble_matrix_A()" << endl;
+	
 
 
 	this->a_matrix_ = MatrixXd::Zero(this->nb_test_, this->nb_trial_);
-
+	this->m_matrix_ = MatrixXd::Zero(this->nb_test_, this->nb_trial_);
 
 	for (int n = 0; n < this->n_; n++)
 	{
@@ -270,6 +277,8 @@ void FE_solver_2D::Assemble_matrix_A()
 		{
 			for (int belta = 0; belta < this->number_of_local_basis_test_; belta++)
 			{
+
+				//矩阵A
 				//integral（c（x,y）*▽ψ_nα*▽ψ_nβ）
 				double gauss_quad_2D_trial_test = 0;
 
@@ -278,15 +287,20 @@ void FE_solver_2D::Assemble_matrix_A()
 
 				//gauss_quad_2D_trial_test的第二项
 				double gauss_quad_2D_trial_test_2 = 0;
-				
-				gauss_quad_2D_trial_test_1 = this->Gauss_qual_trial_test_2D(alpha, belta,1,0,1,0);  //计算ppt36/138第一项
-
-				gauss_quad_2D_trial_test_2 = this->Gauss_qual_trial_test_2D(alpha, belta, 0,1,0,1);  //计算ppt36/138第二项
-
+				gauss_quad_2D_trial_test_1 = this->Gauss_qual_trial_test_2D(alpha, belta, 1, 0, 1, 0,false);  //计算ppt36/138第一项
+				gauss_quad_2D_trial_test_2 = this->Gauss_qual_trial_test_2D(alpha, belta, 0, 1, 0, 1,false);  //计算ppt36/138第二
 				gauss_quad_2D_trial_test = gauss_quad_2D_trial_test_1 + gauss_quad_2D_trial_test_2;
+				this->a_matrix_(this->tb_test_(belta, n) - 1, this->tb_trial_(alpha, n) - 1) += gauss_quad_2D_trial_test;
 
-				this->a_matrix_(this->tb_test_(belta, n)-1, this->tb_trial_(alpha, n)-1) += gauss_quad_2D_trial_test;
 				
+				//矩阵M
+								//integral（1*ψ_nα*ψ_nβ）
+				double gauss_quad_2D_trial_test_m = 0;
+
+				gauss_quad_2D_trial_test_m = this->Gauss_qual_trial_test_2D(alpha, belta, 0, 0, 0, 0,true);  
+				this->m_matrix_(this->tb_test_(belta, n) - 1, this->tb_trial_(alpha, n) - 1) += gauss_quad_2D_trial_test_m;
+
+
 			}
 		}
 	}
@@ -294,17 +308,70 @@ void FE_solver_2D::Assemble_matrix_A()
 
 
 	cout << this->a_matrix_ << endl;
+
+	cout << "\tAssemble_matrix_M()" << endl;
+	cout << this->m_matrix_ << endl;
+}
+
+
+void FE_solver_2D_heat::Assemble_X_init()
+{
+	cout << "*********************************************" << endl;
+	cout << "\tAssemble_X_init" << endl;
+
+	this->X_init = MatrixXd::Zero(this->nb_test_, 1);
+	double x;
+	double y;
+	for (int i = 0; i < this->nb_test_; i++)
+	{
+		x = this->pb_test_(0, i);
+		y = this->pb_test_(1, i);
+
+		this->X_init(i, 0) = Real_Ux(x, y, 0);
+	}
+
+	cout << this->X_init << endl;
 }
 
 
 
+void  FE_solver_2D_heat::IterateInTime(double theta)
+{
+	int numOfTimeStep = (this->end_ - this->start_) / (this->dt_);
 
-void FE_solver_2D::Assemble_b()
+	double tm = 0;
+	double tmp1 = 0;
+	a_tilde_ =(1/ dt_) * m_matrix_ + theta * a_matrix_;
+	a_fixed_= (1 / dt_) * m_matrix_ -(1-theta) * a_matrix_;
+
+	MatrixXd X_m = this->X_init;
+
+	for (int m = 0; m < numOfTimeStep; m++)
+	{
+		tm = m * (this->dt_);
+		tmp1 = (m + 1) * (this->dt_);
+		Assemble_b(tm, tmp1);
+		b_tilde_ = theta * bmp1_vector_ + (1 - theta) * bm_vector_ + a_fixed_ * X_m;
+		Treat_Boundary();
+		Solution_heat();
+		X_m = this->solution_;
+
+	}
+}
+
+void FE_solver_2D_heat::Assemble_b()
+{
+
+}
+ 
+
+void FE_solver_2D_heat::Assemble_b(double tm, double tmp1)
 {
 
 	cout << "*********************************************" << endl;
-	cout << "\tAssemble_b_vector()" << endl;
-	this->b_vector_ = MatrixXd::Zero(this->nb_test_, 1);
+	cout << "\tAssemble_bm_bmp1()" << endl;
+	this->bm_vector_ = MatrixXd::Zero(this->nb_test_, 1);
+	this->bmp1_vector_ = MatrixXd::Zero(this->nb_test_, 1);
 
 
 	for (int n = 0; n < this->n_; n++)
@@ -315,10 +382,14 @@ void FE_solver_2D::Assemble_b()
 		for (int belta = 0; belta < this->number_of_local_basis_test_; belta++)
 		{
 			//integral（c（x,y）*▽ψ_nα*▽ψ_nβ）
-			double gauss_quad_2D_trial_test = 0;
+			double gauss_quad_2D_trial_test_tm = 0;
+			double gauss_quad_2D_trial_test_tmp1 = 0;
 
-			gauss_quad_2D_trial_test = Gauss_qual_fx_test_2D( belta, 0, 0, 0, 0);  //计算ppt36/138第一项
-			this->b_vector_(this->tb_test_(belta, n) - 1,0) += gauss_quad_2D_trial_test;
+			gauss_quad_2D_trial_test_tm = Gauss_qual_fx_test_2D(belta, 0, 0, 0, 0, tm);
+			gauss_quad_2D_trial_test_tmp1 = Gauss_qual_fx_test_2D(belta, 0, 0, 0, 0, tmp1);
+
+			this->bm_vector_(this->tb_test_(belta, n) - 1, 0) += gauss_quad_2D_trial_test_tm;
+			this->bmp1_vector_(this->tb_test_(belta, n) - 1, 0) += gauss_quad_2D_trial_test_tmp1;
 
 		}
 
@@ -326,23 +397,27 @@ void FE_solver_2D::Assemble_b()
 
 
 
-	cout << this->b_vector_ << endl;
+	cout << bm_vector_ << endl;
+	cout << "*************" << endl;
+	cout << bmp1_vector_ << endl;
 }
 
 
 
 
-void FE_solver_2D::Treat_Boundary()
+
+
+void FE_solver_2D_heat::Treat_Boundary()
 {
-	
+
 	for (int k = 0; k < this->nbn_; k++)
 	{
 		if (this->boundary_nodes_(0, k) == 1)  //dirichelet
 		{
 			int i = this->boundary_nodes_(1, k);
-			this->a_matrix_.row(i - 1).fill(0);             //把某一行赋值成0
-			this->a_matrix_(i - 1, i - 1) = 1;
-			this->b_vector_(i - 1, 0) = g_boundary(this->pb_trial_(0, i-1), this->pb_trial_(1, i-1));
+			this->a_tilde_.row(i - 1).fill(0);             //把某一行赋值成0
+			this->a_tilde_(i - 1, i - 1) = 1;
+			this->b_tilde_(i - 1, 0) = g_boundary(this->pb_trial_(0, i - 1), this->pb_trial_(1, i - 1));
 		}
 		else if (this->boundary_nodes_(0, k) == 2)   //Neumann
 		{
@@ -355,33 +430,44 @@ void FE_solver_2D::Treat_Boundary()
 					for (int belta = 0; belta < this->number_of_local_basis_test_; belta++)
 					{
 						double int_value = this->Gauss_qual_neumann_test_2D(belta, 0, 0, 0, 0);
-						v(this->tb_test_(belta, nk), 0) = v(this->tb_test_(belta,nk), 0) + int_value;
+						v(this->tb_test_(belta, nk), 0) = v(this->tb_test_(belta, nk), 0) + int_value;
 					}
 				}
 			}
-			this->b_vector_ = this->b_vector_.array() + v.array();
+			this->b_tilde_ = this->b_tilde_.array() + v.array();
 		}
 		else if (this->boundary_nodes_(0, k) == 3)
 		{
 
 		}
 	}
-	cout << "边界处理后：A矩阵" << endl;
-	cout << this->a_matrix_ << endl;
+	cout << "边界处理后：A_tilde矩阵" << endl;
+	cout << this->a_tilde_ << endl;
 
 	cout << "*******************" << endl;
-	cout << "边界处理后：b矩阵" << endl;
-	cout << this->b_vector_ << endl;
+	cout << "边界处理后：b_tilde矩阵" << endl;
+	cout << this->b_tilde_ << endl;
 
 }
 
 
-void FE_solver_2D::Compute_Error()
+void FE_solver_2D_heat::Solution_heat()
+{
+
+	this->solution_ = MatrixXd::Zero(this->nb_test_, 1);
+
+	this->solution_ = this->a_tilde_.inverse() * (this->b_tilde_);
+	cout << "solution_:" << endl;
+	cout << this->solution_ << endl;
+
+}
+
+void FE_solver_2D_heat::Compute_Error()
 {
 	MatrixXd real_val = MatrixXd::Zero(this->nb_test_, 1);
 	for (int belta = 0; belta < this->nb_test_; belta++)
 	{
-		real_val(belta, 0) = Real_Ux(this->pb_test_(0, belta), this->pb_test_(1, belta));
+		real_val(belta, 0) = Real_Ux(this->pb_test_(0, belta), this->pb_test_(1, belta),1);
 	}
 	MatrixXd error;
 	error = this->solution_ - real_val;
@@ -394,9 +480,9 @@ void FE_solver_2D::Compute_Error()
 	cout << max << endl;
 }
 
-void FE_solver_2D::Compute_Gauss(int n)
+void FE_solver_2D_heat::Compute_Gauss(int n)
 {
-	MatrixXd reference_gauss_weight_nodes(3,3);	//参考高斯权重与节点
+	MatrixXd reference_gauss_weight_nodes(3, 3);	//参考高斯权重与节点
 	switch (n)
 	{
 	case 3:
@@ -414,45 +500,45 @@ void FE_solver_2D::Compute_Gauss(int n)
 	{
 		reference_gauss_weight_nodes.resize(3, 9);
 		this->gauss_weight_nodes = MatrixXd::Zero(3, 9);
-		reference_gauss_weight_nodes << 8/ 81.0, 12.5 / 324.0 * (1 - sqrt(3 / 5.0)) , 12.5 / 324.0 * (1 - sqrt(3 / 5.0)) , 12.5 / 324.0 * (1 + sqrt(3 / 5.0)), 12.5 / 324.0 * (1 + sqrt(3 / 5.0)), \
-			5 / 81.0, 5 / 81.0, 5/ 81.0 * (1 - sqrt(3 / 5.0)) , 5/ 81.0 * (1 + sqrt(3 / 5.0)),
+		reference_gauss_weight_nodes << 8 / 81.0, 12.5 / 324.0 * (1 - sqrt(3 / 5.0)), 12.5 / 324.0 * (1 - sqrt(3 / 5.0)), 12.5 / 324.0 * (1 + sqrt(3 / 5.0)), 12.5 / 324.0 * (1 + sqrt(3 / 5.0)), \
+			5 / 81.0, 5 / 81.0, 5 / 81.0 * (1 - sqrt(3 / 5.0)), 5 / 81.0 * (1 + sqrt(3 / 5.0)),
 			0.5, (1 + sqrt(3 / 5.0)) / 2.0, (1 + sqrt(3 / 5.0)) / 2.0, (1 - sqrt(3 / 5.0)) / 2.0, (1 - sqrt(3 / 5.0)) / 2.0, 0.5, 0.5, (1 + sqrt(3 / 5.0)) / 2.0, (1 - sqrt(3 / 5.0)) / 2.0,
-			0.25, 0.1, (1 - sqrt(3 / 5.0))* (1 - sqrt(3 / 5.0)) / 4.0, (1 + sqrt(3 / 5.0))* (1 + sqrt(3 / 5.0)) / 4.0, 0.1,  (1 + sqrt(3 / 5.0)) / 4.0,  (1 - sqrt(3 / 5.0)) / 4.0, (1 - sqrt(3 / 5.0)) / 4.0, (1 + sqrt(3 / 5.0)) / 4.0;
-	
+			0.25, 0.1, (1 - sqrt(3 / 5.0))* (1 - sqrt(3 / 5.0)) / 4.0, (1 + sqrt(3 / 5.0))* (1 + sqrt(3 / 5.0)) / 4.0, 0.1, (1 + sqrt(3 / 5.0)) / 4.0, (1 - sqrt(3 / 5.0)) / 4.0, (1 - sqrt(3 / 5.0)) / 4.0, (1 + sqrt(3 / 5.0)) / 4.0;
+
 	}
 	}
 
-		//cout << "reference gauss nodes" << endl;
-		//cout << reference_gauss_weight_nodes << endl;
+	//cout << "reference gauss nodes" << endl;
+	//cout << reference_gauss_weight_nodes << endl;
 
 
 
-		//变换后的高斯节点与权重
-		double x1 = this->vertices_(0, 0);
-		double y1 = this->vertices_(1, 0);
-		double x2 = this->vertices_(0, 1);
-		double y2 = this->vertices_(1, 1);
-		double x3 = this->vertices_(0, 2);
-		double y3 = this->vertices_(1, 2);
+	//变换后的高斯节点与权重
+	double x1 = this->vertices_(0, 0);
+	double y1 = this->vertices_(1, 0);
+	double x2 = this->vertices_(0, 1);
+	double y2 = this->vertices_(1, 1);
+	double x3 = this->vertices_(0, 2);
+	double y3 = this->vertices_(1, 2);
 
-		double Jacobi = abs((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1));
-		//cout << Jacobi << endl;
-		this->gauss_weight_nodes.row(0) = reference_gauss_weight_nodes.row(0).array() * Jacobi;
-		this->gauss_weight_nodes.row(1) = x1 + (x2 - x1) * (reference_gauss_weight_nodes.row(1).array()) + (x3 - x1) * (reference_gauss_weight_nodes.row(2).array());
-		this->gauss_weight_nodes.row(2) = y1 + (y2 - y1) * (reference_gauss_weight_nodes.row(1).array()) + (y3 - y1) * (reference_gauss_weight_nodes.row(2).array());
+	double Jacobi = abs((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1));
+	//cout << Jacobi << endl;
+	this->gauss_weight_nodes.row(0) = reference_gauss_weight_nodes.row(0).array() * Jacobi;
+	this->gauss_weight_nodes.row(1) = x1 + (x2 - x1) * (reference_gauss_weight_nodes.row(1).array()) + (x3 - x1) * (reference_gauss_weight_nodes.row(2).array());
+	this->gauss_weight_nodes.row(2) = y1 + (y2 - y1) * (reference_gauss_weight_nodes.row(1).array()) + (y3 - y1) * (reference_gauss_weight_nodes.row(2).array());
 
-		//cout << "local gauss nodes" << endl;
-		//cout << this->gauss_weight_nodes << endl;
-	
+	//cout << "local gauss nodes" << endl;
+	//cout << this->gauss_weight_nodes << endl;
+
 }
 
-double FE_solver_2D::FE_basis_local_fun_test(double x, double y,int basis_index, int basis_der_x,int basis_der_y)
+double FE_solver_2D_heat::FE_basis_local_fun_test(double x, double y, int basis_index, int basis_der_x, int basis_der_y)
 {
 	return 0;
 }
 
 
-double FE_solver_2D::FE_basis_local_fun_trial(double x, double y, int basis_index, int basis_der_x, int basis_der_y)
+double FE_solver_2D_heat::FE_basis_local_fun_trial(double x, double y, int basis_index, int basis_der_x, int basis_der_y)
 {
 	//
 	double jacobi;
@@ -527,23 +613,23 @@ double FE_solver_2D::FE_basis_local_fun_trial(double x, double y, int basis_inde
 
 	//
 
- }
+}
 
 
 
-void FE_solver_2D::Print_message_normal()
+void FE_solver_2D_heat::Print_message_normal()
 {
 
- }
+}
 
 
-double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, int basis_der_x,int basis_der_y)  //参考局部奇函数
+double FE_solver_2D_heat::reference_basis_2D(double xh, double yh, int basis_index, int basis_der_x, int basis_der_y)  //参考局部奇函数
 {
 
 	if (this->basis_type_test_ == 201)        //二维线性函数  ppt  32/103
 	{
-		if(basis_index==0)
-		{ 
+		if (basis_index == 0)
+		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
 				return -xh - yh + 1;
@@ -561,7 +647,7 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 				return 0;
 			}
 		}
-		else if(basis_index==1)
+		else if (basis_index == 1)
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
@@ -600,7 +686,7 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
-				return 2 * pow(xh , 2) + 2 * pow(yh , 2)+4*xh*yh-3*yh-3*xh+1;
+				return 2 * pow(xh, 2) + 2 * pow(yh, 2) + 4 * xh * yh - 3 * yh - 3 * xh + 1;
 			}
 			else if (basis_der_x == 1 && basis_der_y == 0)
 			{
@@ -632,7 +718,7 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
-				return 2 * pow(xh, 2) -  xh ;
+				return 2 * pow(xh, 2) - xh;
 			}
 			else if (basis_der_x == 1 && basis_der_y == 0)
 			{
@@ -673,11 +759,11 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
-				return -4 * pow(xh, 2) - 4*xh*yh+4*xh;
+				return -4 * pow(xh, 2) - 4 * xh * yh + 4 * xh;
 			}
 			else if (basis_der_x == 1 && basis_der_y == 0)
 			{
-				return -8 * xh - -4*yh+4;
+				return -8 * xh - -4 * yh + 4;
 			}
 			else if (basis_der_x == 0 && basis_der_y == 1)
 			{
@@ -697,7 +783,7 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
-				return 4*xh*yh;
+				return 4 * xh * yh;
 			}
 			else if (basis_der_x == 1 && basis_der_y == 0)
 			{
@@ -715,78 +801,88 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		}
 		else if (basis_index == 5)
 		{
-		if (basis_der_x == 0 && basis_der_y == 0)
-		{
-			return -4 * pow(yh, 2) - 4 * xh * yh + 4 * yh;
-		}
-		else if (basis_der_x == 0 && basis_der_y == 1)
-		{
-			return -8 * yh - -4 * xh + 4;
-		}
-		else if (basis_der_x == 1 && basis_der_y == 0)
-		{
-			return -4 * yh;
-		}
+			if (basis_der_x == 0 && basis_der_y == 0)
+			{
+				return -4 * pow(yh, 2) - 4 * xh * yh + 4 * yh;
+			}
+			else if (basis_der_x == 0 && basis_der_y == 1)
+			{
+				return -8 * yh - -4 * xh + 4;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 0)
+			{
+				return -4 * yh;
+			}
 
-		else if (basis_der_x == 0 && basis_der_y == 2)
-		{
-			return -8;
-		}
-		else
-		{
-			return 0;
-		}
+			else if (basis_der_x == 0 && basis_der_y == 2)
+			{
+				return -8;
+			}
+			else
+			{
+				return 0;
+			}
 		}
 	}
 }
 
 
-void FE_solver_2D::Caculate_vertices(int n)
+void FE_solver_2D_heat::Caculate_vertices(int n)
 {
 	this->vertices_.col(0) = this->p_.col(this->t_(0, n) - 1);
 	this->vertices_.col(1) = this->p_.col(this->t_(1, n) - 1);
-	this->vertices_ .col(2)= this->p_.col(this->t_(2, n) - 1);
+	this->vertices_.col(2) = this->p_.col(this->t_(2, n) - 1);
 
 }
 
 
-double FE_solver_2D::Gauss_qual_trial_test_2D(int alpha, int belta,int r,int s,int p,int q)
+double FE_solver_2D_heat::Gauss_qual_trial_test_2D(int alpha, int belta, int r, int s, int p, int q,bool M)
 {
 	double int_value = 0;
+	double cx = 0;
+	double fai_trial_x = 0;
+	double fai_test_x = 0;
 	for (int k = 0; k < this->number_of_gauss_points; k++)   //三点高斯插值
 	{
-		double cx = 0;
-		double fai_trial_x = 0;
-		double fai_test_x = 0;
 
-		cx = this->Cx(this->gauss_weight_nodes(1, k), this->gauss_weight_nodes(2, k)); //计算Cx（xi,yi）
 
-		fai_trial_x=this->FE_basis_local_fun_trial(this->gauss_weight_nodes(1, k), this->gauss_weight_nodes(2, k), alpha, r, s); //计算∂ψnα/∂x(xi,yi)
+		if (M == true)	//	计算M
+		{
+			cx = 1;
+		}
+		else
+		{
+			cx = this->Cx(this->gauss_weight_nodes(1, k), this->gauss_weight_nodes(2, k)); //计算Cx（xi,yi）
+		}
+		
+
+		fai_trial_x = this->FE_basis_local_fun_trial(this->gauss_weight_nodes(1, k), this->gauss_weight_nodes(2, k), alpha, r, s); //计算∂ψnα/∂x(xi,yi)
 		fai_test_x = this->FE_basis_local_fun_trial(this->gauss_weight_nodes(1, k), this->gauss_weight_nodes(2, k), belta, p, q);//计算∂ψβ/∂x(xi,yi)
 
-		
 
-		
+
+
 
 
 		int_value += this->gauss_weight_nodes(0, k) * cx * fai_trial_x * fai_test_x;
 	}
-	
+
 	return int_value;
 }
 
 
-double FE_solver_2D::Gauss_qual_fx_test_2D(int belta, int r, int s, int p, int q)
+
+double FE_solver_2D_heat::Gauss_qual_fx_test_2D(int belta, int r, int s, int p, int q, double t)
 {
 	double int_value = 0;
 	for (int k = 0; k < this->number_of_gauss_points; k++)   //三点高斯插值
 	{
 		double fx_value = 0;
 
-		fx_value = this->fx(this->gauss_weight_nodes(1, k), this->gauss_weight_nodes(2, k)); //计算Cx（xi,yi）
+		fx_value = this->fx(this->gauss_weight_nodes(1, k), this->gauss_weight_nodes(2, k), t); //计算fx（xi,yi,t）
 
 
-		
+
 
 		double fai_test_x = 0;
 		fai_test_x = this->FE_basis_local_fun_trial(this->gauss_weight_nodes(1, k), this->gauss_weight_nodes(2, k), belta, p, q);//计算ψβ(xi,yi)
@@ -797,8 +893,7 @@ double FE_solver_2D::Gauss_qual_fx_test_2D(int belta, int r, int s, int p, int q
 	return int_value;
 }
 
-
-double  FE_solver_2D::Gauss_qual_neumann_test_2D(int belta, int r, int s, int p, int q)
+double  FE_solver_2D_heat::Gauss_qual_neumann_test_2D(int belta, int r, int s, int p, int q)
 {
 	double int_value = 0;
 	for (int k = 0; k < this->number_of_gauss_points; k++)   //三点高斯插值
@@ -820,67 +915,64 @@ double  FE_solver_2D::Gauss_qual_neumann_test_2D(int belta, int r, int s, int p,
 }
 
 
-
-
-double FE_solver_2D::Cx(double x,double y)
+double FE_solver_2D_heat::Cx(double x, double y)
 {
-	return 1;
+	return 2;
 }
 
 
-
-double  FE_solver_2D::fx(double x, double y)
+double  FE_solver_2D_heat::fx(double x, double y, double t)
 {
 
-	return -y * (1 - y) * (1 - x - pow(x , 2) / 2.0)*exp(x+y)+x*(1-x/2.0)*(3*y+pow(y,2))*exp(x+y);
+	return -3 * exp(x + y + t);
 }
 
-
-double  FE_solver_2D::cp(double x, double y)
+double  FE_solver_2D_heat::cp(double x, double y)
 {
 
 	return 0;//？还没写
 }
 
 //计算边界值
-double  FE_solver_2D::g_boundary(double x, double y)
+double  FE_solver_2D_heat::g_boundary(double x, double y)
 {
-	if (x == -1)
+	if (x == 0)
 	{
-		return -1.5 * y * (1 - y) * exp(y - 1);
+		return  exp(y);
 	}
-	else if (x == 1)
+	else if (x == 2)
 	{
-		return 0.5 * y * (1 - y) * exp(y + 1);
+		return exp(y + 2);
 	}
-	else if (y == -1)
+	if (y == 0)
 	{
-		return -2 * x* (1 - x/2.0) * exp(x- 1);
+		return  exp(x);
 	}
 	else if (y == 1)
 	{
-		return 0;
+		return exp(x+1);
 	}
 }
 
 
 
 
-double FE_solver_2D::Real_Ux(double x, double y)
+double FE_solver_2D_heat::Real_Ux(double x, double y, double t)
 {
-	return x * y * (1 - x / 2.0) * (1 - y) * exp(x + y);
+	return  exp(x + y + t);
 }
 
 
 
 
-void FE_solver_2D::autoRun()
+
+void FE_solver_2D_heat::autoRun()
 {
 	Generate_PT(3);
 	Generate_BoundaryNodes();
 	Assemble_matrix_A();
-	Assemble_b();
-	Treat_Boundary();
-	Solution();
+	
+	Assemble_X_init();
+	IterateInTime(0.5);
 	Compute_Error();
 }

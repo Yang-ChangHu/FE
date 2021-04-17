@@ -1,54 +1,28 @@
-﻿/*************************************************
-Copyright:杨昌鹄
-Author:杨昌鹄
-Date:2021-01-15
-Description:二维有限元求解器 派生类
-
-
-
-N1_:水平方向分成N1份网格
-N2_：竖直方向分成N2份网格
-
-**************************************************/
-
-#pragma once
+﻿#pragma once
 #include<iostream>
 #include<string>
 #include <Eigen/Dense>
-using namespace Eigen;    
-#include<iostream>
-using namespace std;
-//using namespace cv;
+using namespace Eigen;
 #include"FE_solver.h"
-
-//一维求解器类
-class FE_solver_2D :public FE_solver
+using namespace std;
+class  FE_solver_2D_heat :public FE_solver
 {
 public:
-
-	//FE_solver_1D构造函数
-	//输入：
-	//		N1_:水平方向网格份数
-	//		N2_:竖直方向网格分数
-	//		gauss_type_
-	//		basis_type_trial,basis_type_test_:基函数类型（线性/二次基函数）
-	//调用：
-	//输出：
-	//		this->N1,  this->N2_  ,this->n_,this->n_m_,this->gauss_type_,this->ga_,this->gb_ = gb_,this->vertices_
-	//		this->basis_type_trial_ ,this->basis_type_test_ ,this->number_of_local_basis_test_,this->number_of_local_basis_trial_;
-	//		this->boundary_,this->nb_test_,this->nb_trial_
-	FE_solver_2D(int N1_, int N2_, int gauss_type_, double a_x, double a_y, double b_x,double b_y, int basis_type_trial_, int basis_type_test_);
-
-	virtual void autoRun();
+	//非稳态c(x,y)，f（x,y,t），u（x,y,t)
+	FE_solver_2D_heat(double start, double end, double dt, int N1_, int N2_, int gauss_type_, double a_x, double a_y, double b_x, double b_y, int basis_type_trial_, int basis_type_test_);
 	
 
+	virtual void autoRun();
 
+
+
+	
 
 	//计算P、Pb_trial、Pb_test:
 	//输入：	mesh_type 三角形网格/四边形网格
 	//调用：
 	//输出：	this->p_ 、this->t_、this->pb_trial_、this->tb_trial_ 、this->pb_test_、this->tb_test_ ;
-	 void Generate_PT(int mesh_type);            //二维的PT矩阵要根据网格单元类型来生成
+	void Generate_PT(int mesh_type);            //二维的PT矩阵要根据网格单元类型来生成
 
 	virtual void Generate_PT();            //空实现
 
@@ -73,15 +47,20 @@ public:
 	virtual void Assemble_matrix_A();
 
 
+	void IterateInTime(double theta);
 
-	//组装b向量
+	//组装b向量,在这是空实现
 	virtual void Assemble_b();
 
-
+	//组装b（tm）.b(tm+1)
+	void Assemble_b(double tm, double tmp1);
 
 
 	//处理边界条件
 	virtual void Treat_Boundary();
+
+
+	void Solution_heat();
 
 
 	//计算最大误差
@@ -100,8 +79,8 @@ public:
 	//	Caculate_vertices(n)
 	//输出：
 	//	局部基函数ψ(x,y)及其偏导数
-	 double FE_basis_local_fun_trial(double x, double y, int basis_index, int basis_der_x, int basis_der_y);
-	
+	double FE_basis_local_fun_trial(double x, double y, int basis_index, int basis_der_x, int basis_der_y);
+
 
 	//test基函数(目前跟test一样，所以直接用FE_basis_local_fun_trial)
 	//输入：
@@ -129,13 +108,12 @@ public:
 	void Generate_boundary_nodes();
 
 
-	//c(x,y)
-	double  Cx(double x,double y);
 
+	//c(x,y,t)
+	double  Cx(double x, double y);
 
-	//f(x)
-	double fx(double x,double y);
-
+	//f(x,y,t)
+	double fx(double x, double y, double t);
 
 	//Neumann边界的cp（x，y）
 	double  cp(double x, double y);
@@ -150,21 +128,17 @@ public:
 	//输出:
 	//		integral（c（x,y）*▽ψ_nα*▽ψ_nβ）
 	//double Gauss_qual_trial_test(int alpha, int belta);
-	double Gauss_qual_trial_test_2D(int alpha, int belta, int r, int s,int p,int q);
+	double Gauss_qual_trial_test_2D(int alpha, int belta, int r, int s, int p, int q,bool M);
 
-	//计算fx_test高斯积分
-	double Gauss_qual_fx_test_2D(int belta, int r, int s, int p, int q);
-
-
-
+	//计算fx_test高斯积分(非稳态)
+	double Gauss_qual_fx_test_2D(int belta, int r, int s, int p, int q, double t);
 
 	//纽曼边界积分
 	double Gauss_qual_neumann_test_2D(int belta, int r, int s, int p, int q);
 
-	//真实u（x）值
-	double Real_Ux(double x,double y);
 
-
+	//非稳态的u（x，y，t）
+	double Real_Ux(double x, double y, double t);
 
 	//参考基函数
 	//输入：
@@ -220,6 +194,37 @@ public:
 	//边界有限元节点
 	MatrixXi boundary_nodes_;
 
-	
+
+	//非稳态参数
+	// 
+	double theta;
+	//开始时间
+	double start_;
+
+	//结束时间
+	double end_;
+
+	//时间步长
+	double dt_;
+
+	//质量矩阵
+	MatrixXd m_matrix_;
+
+	//初始时间的X0
+	MatrixXd X_init;
+
+	//
+	MatrixXd bm_vector_;
+
+	MatrixXd bmp1_vector_;
+
+	MatrixXd a_tilde_;
+	MatrixXd a_fixed_;
+	MatrixXd b_tilde_;
+
+	//计算X0
+	void Assemble_X_init();
+
+
 
 };

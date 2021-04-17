@@ -21,6 +21,8 @@ class FE_solver
 {
 public:
 
+	virtual void autoRun() = 0;
+
 	//计算P、Pb_trial、Pb_test
 	virtual void Generate_PT()=0;
 
@@ -31,10 +33,10 @@ public:
 	virtual void Generate_BoundaryNodes()=0;
 
 	//组装A矩阵
-	virtual void Assemble_matrix_A(bool T=false)=0;
+	virtual void Assemble_matrix_A()=0;
 
 	//组装b向量
-	virtual void Assemble_b(bool T=false)=0;
+	virtual void Assemble_b()=0;
 
 	//处理边界条件
 	virtual void Treat_Boundary()=0;
@@ -55,7 +57,6 @@ public:
 	{
 
 		this->solution_ = MatrixXd::Zero(this->nb_test_, 1);
-
 		this->solution_ = this->a_matrix_.inverse() * (this->b_vector_);
 		cout << "solution_:" << endl;
 		cout << this->solution_ << endl;
