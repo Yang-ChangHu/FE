@@ -35,7 +35,7 @@ public:
 	//输出：
 	//		this->boundary_nodes_
 	//		this->boundary_edges_		
-	virtual void Generate_BoundaryNodes();
+	virtual void Generate_BoundaryNodes(int mesh_type);
 
 	//组装A矩阵
 	//调用:

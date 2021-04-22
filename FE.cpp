@@ -20,7 +20,7 @@ void test_1D()
 	//一维有限元
 	fe = new FE_solver_1D(0, 1, 4, 1, 0.0, cos(1), 101, 101, 11);
 	fe->Generate_PT();
-	fe->Generate_BoundaryNodes();
+	fe->Generate_BoundaryNodes(4);
 	fe->Print_message_normal();
 	fe->Assemble_matrix_A();
 	fe->Assemble_b();

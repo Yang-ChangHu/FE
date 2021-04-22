@@ -53,7 +53,7 @@ public:
 	//输出：
 	//		this->boundary_nodes_
 	//		this->boundary_edges_		
-	virtual void Generate_BoundaryNodes();
+	virtual void Generate_BoundaryNodes(int mesh_type);
 
 	//组装A矩阵
 	//输入：nb_test_,nb_trial,tb_test,tb_trial_,number_of_local_basis_trial_,number_of_local_basis_test_
@@ -133,7 +133,7 @@ public:
 	virtual void Print_message_normal();
 
 	//计算边界边矩阵 （有限元概念）
-	void Generate_boundary_edge();
+	void Generate_boundary_edge(int mesh_type);
 
 	//计算边界点矩阵（有限元概念）
 	void Generate_boundary_nodes();

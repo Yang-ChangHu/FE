@@ -113,7 +113,7 @@ void FE_solver_1D::Generate_PT(int mesh_type)
 
 
 //设定边界条件
-void FE_solver_1D::Generate_BoundaryNodes()
+void FE_solver_1D::Generate_BoundaryNodes(int mesh_type)
 {
 	
 	//Dirichlet:1  Neumann :2   Robin:3

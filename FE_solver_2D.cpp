@@ -35,19 +35,6 @@ FE_solver_2D::FE_solver_2D(int N1_, int N2_, int gauss_type_, double a_x, double
 
 void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角形网格  4 四边形
 {
-	switch (mesh_type)
-	{
-	case 3:
-	{
-		this->n_ = 2 * this->N1_ * this->N2_;
-		break;
-	}
-	case 4:
-	{
-		this->n_ =  N1_ * N2_;
-		break;
-	}
-	}
 
 	//标准区间P矩阵
 	this->p_ = MatrixXd::Zero(2, this->n_m_);
@@ -70,6 +57,7 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 	{
 	case 3:          //三角形网格
 	{
+		this->n_ = 2 * this->N1_ * this->N2_;
 		this->t_ = MatrixXi::Zero(3, this->n_);
 
 		//初始化前两个单元
@@ -97,22 +85,30 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 				}
 			}
 		}
+		break;
 	}
 	case 4:          //四边形风格
 	{
+		this->n_ = N1_ * N2_;
 		this->t_ = MatrixXi::Zero(4, this->n_);
-		for (int i = 0; i < N1_; i++)
+
+		//第一行
+		this->t_.col(0) << 1,this->N2_ + 2, this->N2_ + 3,2;
+		
+		//竖直方向上赋值
+		for (int i = 1; i < this->N2_; i++)
 		{
-			if (i == 0)
-			{
-			for (int j = 0; j < N2_; j++)
-			{
-
-			}
-
-			}
-
+			this->t_.col(i) = this->t_.col(i - 1).array() + 1;
 		}
+		
+		//水平方向
+		for (int j = 1; j < this->N1_; j++)
+		{
+			this->t_.block(0, j * (this->N2_), 4, this->N2_) = this->t_.block(0, (j - 1) * (this->N2_), 4, this->N2_).array() + (this->N2_ + 1);
+		}
+
+
+		break;
 	}
 
 	}
@@ -175,10 +171,10 @@ void  FE_solver_2D::Generate_PT()
 	//空实现，二维不用这个
 }
 
-void FE_solver_2D::Generate_BoundaryNodes()
+void FE_solver_2D::Generate_BoundaryNodes(int mesh_type)
 {
 	//生产边界边矩阵
-	Generate_boundary_edge();
+	Generate_boundary_edge(mesh_type);
 
 	//生成边界点矩阵
 	Generate_boundary_nodes();
@@ -186,10 +182,10 @@ void FE_solver_2D::Generate_BoundaryNodes()
 
 
 //边界边矩阵 （有限元概念）
-void FE_solver_2D::Generate_boundary_edge()
+void FE_solver_2D::Generate_boundary_edge(int mesh_type)
 {
 	//nbe:边界边的条数，nbe=2*N1*N2,网格概念
-	//我们处理狄利克雷等边界条件，是在有限元节点上已知?难道不是网格？
+	//我们处理狄利克雷等边界条件，是在有限元节点上
 	this->nbe_ = 2 * (this->N1_ + this->N2_);
 	this->boundary_edges_ = MatrixXi::Zero(4, this->nbe_);
 
@@ -199,9 +195,9 @@ void FE_solver_2D::Generate_boundary_edge()
 
 
 
-	this->boundary_edges_(1, 0) = 1;  //第一条边界边永远是1开始
+	this->boundary_edges_(1, 0) = 1;  //第一条边界边永远是在第一个网格单元上
 
-	this->boundary_edges_(2, 0) = 1;
+	this->boundary_edges_(2, 0) = 1;	//
 	this->boundary_edges_(3, 0) = 1 + this->N2_ + 1;
 
 	for (int i = 1; i < this->nbe_; i++)
@@ -210,19 +206,43 @@ void FE_solver_2D::Generate_boundary_edge()
 
 		if (i < this->N1_)      //下面的边界边
 		{
-			this->boundary_edges_(1, i) = this->boundary_edges_(1, i - 1) + 2 * this->N2_;    //第二行 边界边的编号 
+			if (mesh_type == 3)
+			{
+				this->boundary_edges_(1, i) = this->boundary_edges_(1, i - 1) + 2 * this->N2_;    //第二行 边界边的编号 
+			}
+			else if (mesh_type == 4)
+			{
+				this->boundary_edges_(1, i) = this->boundary_edges_(1, i - 1) +  this->N2_;    //第二行 边界边的编号 
+			}
+			
 			this->boundary_edges_(3, i) = this->boundary_edges_(2, i) + this->N2_ + 1;   //第四行   边界边的第二个节点编号
 
 		}
 		else if (i == this->N1_)   //右边边界点第一个
 		{
-			this->boundary_edges_(1, i) = this->boundary_edges_(1, i - 1) + 1;
+			if (mesh_type == 3)
+			{
+				this->boundary_edges_(1, i) = this->boundary_edges_(1, i - 1) + 1;
+			}
+			else if (mesh_type == 4)
+			{
+				this->boundary_edges_(1, i) = this->boundary_edges_(1, i - 1);
+			}
+			
 			this->boundary_edges_(3, i) = this->boundary_edges_(2, i) + 1;   //第四行   边界边的第二个节点编号
 
 		}
 		else if (i > this->N1_ && i < (this->N1_ + this->N2_))  //右边边界边
 		{
-			boundary_edges_(1, i) = boundary_edges_(1, i - 1) + 2;
+			if (mesh_type == 3)
+			{
+				boundary_edges_(1, i) = boundary_edges_(1, i - 1) + 2;
+			}
+			else if (mesh_type == 4)
+			{
+				boundary_edges_(1, i) = boundary_edges_(1, i - 1) + 1;
+			}
+			
 			boundary_edges_(3, i) = boundary_edges_(2, i) + 1;
 		}
 		else if (i == (this->N1_ + this->N2_)) //上边边界点第一条
@@ -232,17 +252,41 @@ void FE_solver_2D::Generate_boundary_edge()
 		}
 		else if (i > (this->N1_ + this->N2_) && i < (2 * this->N1_ + this->N2_))  //上边边界
 		{
-			boundary_edges_(1, i) = boundary_edges_(1, i - 1) - 2 * this->N2_;
+			if (mesh_type == 3)
+			{
+				boundary_edges_(1, i) = boundary_edges_(1, i - 1) - 2 * this->N2_;
+			}
+			else if (mesh_type == 4)
+			{
+				boundary_edges_(1, i) = boundary_edges_(1, i - 1) -   this->N2_;
+			}
+
 			boundary_edges_(3, i) = boundary_edges_(2, i) - (this->N2_ + 1);
 		}
-		else if (i == (2 * this->N1_ + this->N2_))                //右边边界最上的那条边
+		else if (i == (2 * this->N1_ + this->N2_))                //左边边界最上的那条边
 		{
-			boundary_edges_(1, i) = boundary_edges_(1, i - 1) - 1;
+
+			if (mesh_type == 3)
+			{
+				boundary_edges_(1, i) = boundary_edges_(1, i - 1) - -1;
+			}
+			else if (mesh_type == 4)
+			{
+				boundary_edges_(1, i) = boundary_edges_(1, i - 1);
+			}
+
 			boundary_edges_(3, i) = boundary_edges_(2, i) - 1;
 		}
 		else
 		{
-			boundary_edges_(1, i) = boundary_edges_(1, i - 1) - 2;
+			if (mesh_type == 3)
+			{
+				boundary_edges_(1, i) = boundary_edges_(1, i - 1) - 2;
+			}
+			else if (mesh_type == 4)
+			{
+				boundary_edges_(1, i) = boundary_edges_(1, i - 1) - 1;
+			}
 			boundary_edges_(3, i) = boundary_edges_(2, i) - 1;
 		}
 	}
@@ -1144,7 +1188,7 @@ double FE_solver_2D::Real_Ux(double x, double y)
 void FE_solver_2D::autoRun()
 {
 	Generate_PT(3);
-	Generate_BoundaryNodes();
+	Generate_BoundaryNodes(3);
 	Assemble_matrix_A();
 	Assemble_b();
 	Treat_Boundary_Neumann();

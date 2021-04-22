@@ -30,7 +30,7 @@ public:
 	virtual void Generate_PT(int mesh_type) = 0;
 
 	//设定边界条件
-	virtual void Generate_BoundaryNodes()=0;
+	virtual void Generate_BoundaryNodes(int mesh_type)=0;
 
 	//组装A矩阵
 	virtual void Assemble_matrix_A()=0;

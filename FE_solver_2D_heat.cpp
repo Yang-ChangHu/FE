@@ -171,7 +171,7 @@ void  FE_solver_2D_heat::Generate_PT()
 	//空实现，二维不用这个
 }
 
-void FE_solver_2D_heat::Generate_BoundaryNodes()
+void FE_solver_2D_heat::Generate_BoundaryNodes(int mesh_type)
 {
 	//生产边界边矩阵
 	Generate_boundary_edge();
@@ -1004,8 +1004,8 @@ double FE_solver_2D_heat::Real_Ux(double x, double y, double t)
 
 void FE_solver_2D_heat::autoRun()
 {
-	Generate_PT(3);
-	Generate_BoundaryNodes();
+	Generate_PT(4);
+	Generate_BoundaryNodes(4);
 	Assemble_matrix_A();
 	
 	Assemble_X_init();
