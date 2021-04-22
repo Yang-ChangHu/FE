@@ -35,7 +35,7 @@ void test_1D()
 void test_2D()
 {
 	FE_solver* fe = NULL;
-	fe = new FE_solver_2D(16,16,1,-1,-1,1,1,201,201);
+	fe = new FE_solver_2D(4,4,1,-1,-1,1,1,201,201);
 	//int N1_, int N2_, int gauss_type_, double a_x, double a_y, double b_x, double b_y, int basis_type_trial_, int basis_type_test_,
 	fe->autoRun();
 

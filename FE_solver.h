@@ -94,7 +94,7 @@ public:
 	//网格分成n分
 	int n_;
 
-	//边界节点数
+	//边界有限元节点数
 	int nbn_;
 	//ux
 	//MatrixXd solution_;

@@ -56,20 +56,31 @@ public:
 	virtual void Generate_BoundaryNodes();
 
 	//组装A矩阵
+	//输入：nb_test_,nb_trial,tb_test,tb_trial_,number_of_local_basis_trial_,number_of_local_basis_test_
 	//调用:
 	//		Gauss_qual_trial_test_2D();//用高斯积分法计算积分
+	//输出：a_matrix_
 	virtual void Assemble_matrix_A();
 
 
 	//组装b向量
-	//调用：Gauss_qual_fx_test_2D()
+	//输入：
+	//		n_，nb_test_,number_of_local_basis_test_
+	//调用：
+	//		Gauss_qual_fx_test_2D()
+	//输出：
+	//		b_vector
 	virtual void Assemble_b();
 
 
 	//处理Dirichlet边界条件
+	//调用：
+	//		g_boundary:计算边界有限元的真实值
 	virtual void Treat_Boundary_Dirichlet();
 
 	//处理neumann边界条件
+	//调用：
+	//		Gauss_qual_neumann_test_2D:计算在第k条边界边上的c(x,y)*p(x,y)*local_basis_function_test(x,y)积分值 
 	virtual void Treat_Boundary_Neumann();
 
 	//处理Robin边界条件
@@ -81,7 +92,7 @@ public:
 
 
 
-	//test基函数(目前跟test一样，所以直接用FE_basis_local_fun_trial)
+	//test基函数(目前跟trial一样，所以直接用FE_basis_local_fun_trial)
 	//输入：
 	//		x:转换后的高斯积分点x坐标
 	//		y:转换后的高斯积分点y坐标
@@ -90,12 +101,12 @@ public:
 	//调用：
 	//输出：
 	//		ψ对x和y的复合偏导.∂(basis_der_x, int basis_der_y)ψ/(∂(basis_der_x)x*∂(basis_der_y)y)
-	virtual double FE_basis_local_fun_test(double x, double y, int basis_index, int basis_der_x, int basis_der_y);
+	 double FE_basis_local_fun_test(double x, double y,int n, int basis_index, int basis_der_x, int basis_der_y);
 
 
 
 
-	//局部基函数
+	//计算第n个单元的trial基函数:fai_trial(xi,yi)
 	//输入：
 	//		x :x坐标
 	//		y：y坐标
@@ -104,10 +115,10 @@ public:
 	//		basis_der_x:对x的偏导数次数
 	//		basis_der_y:对y的偏导数次数
 	//调用：
+	//	Caculate_vertices(n)	
 	//	reference_basis_2D()
-	//	Caculate_vertices(n)
 	//输出：
-	//	局部基函数ψ(x,y)及其偏导数
+	//	局部基函数ψ_trial(xi,yi)及其偏导数
 	double FE_basis_local_fun_trial(double x, double y, int n, int basis_index, int basis_der_x, int basis_der_y);
 
 	//计算高斯积分的权重和节点(local高斯公式) 四节点（废了）
@@ -131,6 +142,11 @@ public:
 	//c(x,y)
 	double  Cx(double x,double y);
 
+	double Qx(double x, double y);
+
+	//r(x,y) Robin边界的r(x,y)
+	double rxy(double x, double y);
+
 
 	//f(x)
 	double fx(double x,double y);
@@ -139,6 +155,12 @@ public:
 	//Neumann边界的cp（x，y）
 	double  cp(double x, double y);
 
+
+	//Robin边界的cq（x，y）
+	double  cq(double x, double y);
+
+	double cr(double x, double y);
+
 	//计算第n个单元的trial_test高斯积分
 	//输入：
 	//		r,s,p,q:trial基函数和test基函数分别对x、y的偏导数
@@ -146,27 +168,37 @@ public:
 	//调用:
 	// 	   Compute_Gauss（）
 	//		Cx(x,y)
-	//		FE_basis_local_fun_trial：∂ψ/∂x∂y
+	//		FE_basis_local_fun_trial：∂ψ(r+s)/∂x(r)∂y(s)
+	// 	   FE_basis_local_fun_test：∂ψ(p+q)/∂x(p)∂y(q)  目前test基函数==trial基函数
 	//输出:
-	//		integral（c（x,y）*▽ψ_nα*▽ψ_nβ）
+	//		integral（c（xn,yn）*∂ψtrial(r+s)/∂x(r)∂y(s)*∂ψtest(p+q)/∂x(p)∂y(q)）
 	double Gauss_qual_trial_test_2D(int alpha, int belta,int n, int r, int s,int p,int q);
 
-	//计算fx_test高斯积分
+	//计算第n个网格单元的fx_test高斯积分
 	//输入：
-	//		r,s,p,q:trial基函数和test基函数分别对x、y的偏导数
+	//		p,q:test基函数分别对x、y的偏导数
 	//调用:
 	// 	   Compute_Gauss（）
-	//		Cx(x,y)
-	//		FE_basis_local_fun_trial：∂ψ/∂x∂y
+	//		fx(xi,yi)
+	//		FE_basis_local_fun_test：ψtest(xi,yi)
 	//输出:
-	//		integral（c（x,y）*▽ψ_nα*▽ψ_nβ）
-	double Gauss_qual_fx_test_2D(int belta,int n, int r, int s, int p, int q);
+	//		integral（fx（xi,yi）*ψ_nβ(xi,yi)）
+	double Gauss_qual_fx_test_2D(int belta,int n,  int p, int q);
 
 
 
 
-	//纽曼边界积分
+	//计算第k条（在第nk个网格单元上）纽曼边界上c(x,y)*p(x,y)*basis_function_test(x,y)的积分  ： P96/138中的r
+	//输入：boundary_edges_，pb_test_
+	//调用：
+	//		cp(x,y):c(x,y)*p(x,y)
+	//		 Compute_neumann_line_Gauss(x,y):计算边界边上的高斯积分点和权重
+	//		FE_basis_local_fun_test：basis_function_test(x,y)
 	double Gauss_qual_neumann_test_2D(int belta,int nk, int k, int p, int q);
+
+	double Gauss_qual_Robin_cr_2D(int alpha, int belta,int nk, int k, int r, int s, int p, int q);
+
+	double Gauss_qual_Robin_cq_2D(int belta, int nk, int k, int p, int q);
 
 	//输入：纽曼边的（a，b）
 	//输出： 高斯4个插值点和权重
@@ -200,7 +232,7 @@ public:
 	//	:MatrixXd::Zero(2, 3)  每列表示网格节点，第一行是x坐标，第二行是y坐标
 	MatrixXd Caculate_vertices(int n);
 
-	//边界有限元节点的值
+	//Dirichlet边界有限元节点的值
 	double g_boundary(double x, double y);
 
 
