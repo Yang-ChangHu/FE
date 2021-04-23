@@ -22,7 +22,7 @@ public:
 	//输入：	mesh_type 三角形网格/四边形网格
 	//调用：
 	//输出：	this->p_ 、this->t_、this->pb_trial_、this->tb_trial_ 、this->pb_test_、this->tb_test_ ;
-	void Generate_PT(int mesh_type);            //二维的PT矩阵要根据网格单元类型来生成
+	//void Generate_PT(int mesh_type);            //二维的PT矩阵要根据网格单元类型来生成
 
 	virtual void Generate_PT();            //空实现
 
@@ -35,7 +35,7 @@ public:
 	//输出：
 	//		this->boundary_nodes_
 	//		this->boundary_edges_		
-	virtual void Generate_BoundaryNodes(int mesh_type);
+	virtual void Generate_BoundaryNodes();
 
 	//组装A矩阵
 	//调用:

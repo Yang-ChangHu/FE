@@ -28,7 +28,7 @@ public:
 	// 	    a_x,a_y:区域左下角坐标
 	// 	    b_x,b_y：区域右上角坐标
 	//		basis_type_trial,basis_type_test_:基函数类型 201 线性基函数 202 二次基函数
-	FE_solver_2D(int N1_, int N2_, int gauss_type_, double a_x, double a_y, double b_x,double b_y, int basis_type_trial_, int basis_type_test_);
+	FE_solver_2D(int N1_, int N2_, int mesh_type, double a_x, double a_y, double b_x,double b_y, int basis_type_trial_, int basis_type_test_);
 
 	//自动调用各个成员函数，实现计算
 	virtual void autoRun();
@@ -40,9 +40,13 @@ public:
 	//输入：	mesh_type ：3：三角形网格:， 4：四边形网格
 	//调用：
 	//输出：	this->p_ 、this->t_、this->pb_trial_、this->tb_trial_ 、this->pb_test_、this->tb_test_ ;
-	 void Generate_PT(int mesh_type);           
+	 //void Generate_PT(int mesh_type);           
 
-	virtual void Generate_PT();            //空实现
+	 //计算P、Pb_trial、Pb_test:
+	 //输入：	mesh_type ：3：三角形网格:， 4：四边形网格
+	 //调用：
+	 //输出：	this->p_ 、this->t_、this->pb_trial_、this->tb_trial_ 、this->pb_test_、this->tb_test_ ;
+	virtual void Generate_PT();          
 
 	//生成边界边和边界点矩阵
 	//输入：
@@ -53,7 +57,7 @@ public:
 	//输出：
 	//		this->boundary_nodes_
 	//		this->boundary_edges_		
-	virtual void Generate_BoundaryNodes(int mesh_type);
+	void Generate_BoundaryNodes();
 
 	//组装A矩阵
 	//输入：nb_test_,nb_trial,tb_test,tb_trial_,number_of_local_basis_trial_,number_of_local_basis_test_
@@ -115,8 +119,8 @@ public:
 	//		basis_der_x:对x的偏导数次数
 	//		basis_der_y:对y的偏导数次数
 	//调用：
-	//	Caculate_vertices(n)	
-	//	reference_basis_2D()
+	//		Caculate_vertices(n)	
+	//		reference_basis_2D()
 	//输出：
 	//	局部基函数ψ_trial(xi,yi)及其偏导数
 	double FE_basis_local_fun_trial(double x, double y, int n, int basis_index, int basis_der_x, int basis_der_y);
@@ -125,6 +129,13 @@ public:
 	virtual void Compute_Gauss(int n);
 
 	//计算第i个网格单元的n个高斯插值点权重
+	//输入 ：
+	//		n:插值点个数
+	//		i:第i个网格单元
+	//调用：
+	//		 Caculate_vertices():计算出第i个网格单元的几个顶点的坐标
+	//输出：
+	//		local_gauss_weight_nodes:第i个网格单元的高斯积分点以及权重矩阵
 	MatrixXd Compute_Gauss(int n,int i);
 
 
@@ -133,7 +144,7 @@ public:
 	virtual void Print_message_normal();
 
 	//计算边界边矩阵 （有限元概念）
-	void Generate_boundary_edge(int mesh_type);
+	void Generate_boundary_edge();
 
 	//计算边界点矩阵（有限元概念）
 	void Generate_boundary_nodes();
@@ -209,27 +220,30 @@ public:
 
 
 
-	//参考基函数
+	//参考局部基函数
 	//输入：
 	//		xh:x_head
 	//		yh:y_head
-	//		basis_index:基函数类型，对于三角形单元线性基函数 basis_index：1,2,3 对于三角形单元二次基函数basis_index:1,2,3,4,5,6
+	//		basis_index:基函数类型，对于三角形单元线性基函数 basis_index：0,1,2 对于三角形单元二次基函数basis_index:0，1,2,3,4,5
+	//					四边形单元 basis_index：0,1,2,3
 	//		basis_der_x:对x的偏导数次数
 	//		basis_der_y:对y的偏导数次数
 	//输出：
-	//	参考基函数ψ_hat(x_hat,y_hat)及其偏导数
+	//	参考基函数ψ_hat(x_hat,y_hat)或其偏导数
 	double reference_basis_2D(double xh, double yh, int basis_index, int basis_der_x, int basis_der_y);
 
 
 
 
-	//计算第n个网格三个节点的坐标
+	//计算第n个网格各个节点的坐标
 	//输入：
 	//		n:第n个网格单元
+	// 	    this->basis_type_trial_：单元类型
+	//		this->mesh_type：网格类型
 	//调用：
 	//	
 	//输出：
-	//	:MatrixXd::Zero(2, 3)  每列表示网格节点，第一行是x坐标，第二行是y坐标
+	//	:MatrixXd::Zero(2, n) n表示第n个网格节点，第一行是x坐标，第二行是y坐标
 	MatrixXd Caculate_vertices(int n);
 
 	//Dirichlet边界有限元节点的值
@@ -246,6 +260,8 @@ public:
 
 	//对y的导数阶
 	int basis_der_y;
+
+
 
 	//网格数组p_，p的第i列表示的是第i个网格点的真实坐标;
 	MatrixXd p_;

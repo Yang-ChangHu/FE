@@ -8,14 +8,14 @@ using namespace std;
 
 
 
-FE_solver_2D::FE_solver_2D(int N1_, int N2_, int gauss_type_, double a_x, double a_y, double b_x, double b_y, int basis_type_trial_, int basis_type_test_)
+FE_solver_2D::FE_solver_2D(int N1_, int N2_, int mesh_type, double a_x, double a_y, double b_x, double b_y, int basis_type_trial_, int basis_type_test_)
 {
 	this->N1_ = N1_;
 	this->N2_ = N2_;
 
 	this->n_m_ = (N1_ + 1) * (N2_ + 1);
 
-	this->gauss_type_ = gauss_type_;
+	this->mesh_type = mesh_type;
 	
 	this->a_ = ArrayXd::Zero(2, 1);
 	this->a_ << a_x,
@@ -33,27 +33,177 @@ FE_solver_2D::FE_solver_2D(int N1_, int N2_, int gauss_type_, double a_x, double
 }
 
 
-void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角形网格  4 四边形
+//void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角形网格  4 四边形
+//{
+//
+//	//标准区间P矩阵
+//	this->p_ = MatrixXd::Zero(2, this->n_m_);
+//	RowVectorXd p2_tmp = VectorXd::LinSpaced(this->N2_ + 1, 0, 1);
+//	for (int j = 0; j < (this->N1_ + 1); j++)
+//	{
+//		this->p_.block(0,j*((this->N2_)+1),1,this->N2_+1)= (this->p_.block(0, j * ((this->N2_) + 1), 1, this->N2_ + 1)).array()+j/((float)(this->N1_));
+//		this->p_.block(1, j * ((this->N2_) + 1), 1, this->N2_ + 1)<< p2_tmp;
+//
+//	}
+//
+//	//变换到实际区间
+//	this->p_.row(0) = this->p_.row(0).array() * (this->b_(0,0) -this->a_(0,0))+this->a_(0,0);
+//	this->p_.row(1) = this->p_.row(1).array() * (this->b_(1, 0) - this->a_(1, 0)) + this->a_(1, 0);
+//
+//
+//
+//	//构建T矩阵
+//	switch (this->mesh_type)//mesh_type:网格类型 3 三角形网格  4 四边形
+//	{
+//	case 3:          //三角形网格
+//	{
+//		this->n_ = 2 * this->N1_ * this->N2_;
+//		this->t_ = MatrixXi::Zero(3, this->n_);
+//
+//		//初始化前两个单元
+//		this->t_(0, 0) = 1;
+//		this->t_(1, 0) = this->N2_+2;
+//		this->t_(2, 0) = 2;
+//
+//		this->t_(0, 1) = 2;
+//		this->t_(1, 1) = this->N2_ + 2;
+//		this->t_(2, 1) = this->N2_ + 3;
+//
+//		//int i = 2;
+//		for (int i=2;i < this->n_;i++)
+//		{
+//			if(i/(2*this->N2_)==0)
+//			for (int j = 0; j < 3; j++)
+//			{
+//				this->t_(j, i) = this->t_(j, i - 2) + 1;
+//			}
+//			else
+//			{
+//				for (int j = 0; j < 3; j++)
+//				{
+//					this->t_(j, i) = this->t_(j, i - 2*(this->N2_)) + 1+this->N2_;
+//				}
+//			}
+//		}
+//
+//		if (this->basis_type_trial_ == 201)   //二维三角形单元线性基函数
+//		{
+//			this->pb_trial_ = this->p_;
+//			this->tb_trial_ = this->t_;
+//
+//			this->number_of_local_basis_trial_ = 3;
+//			this->nb_trial_ = this->n_m_;
+//		}
+//		else if (this->basis_type_trial_ == 202)   //二维三角形单元二次基函数
+//		{
+//			//pb_trial还没写
+//			//tb_trail 也还没写
+//			this->number_of_local_basis_trial_ = 6;
+//			this->nb_trial_ = 2 * (this->n_m_);
+//		}
+//
+//		if (this->basis_type_test_ == 201)
+//		{
+//			this->pb_test_ = this->p_;
+//			this->tb_test_ = this->t_;
+//
+//			this->number_of_local_basis_test_ = 3;
+//			this->nb_test_ = this->n_m_;
+//		}
+//		else if (this->basis_type_test_ == 202)   //二维二次奇函数
+//		{
+//
+//			//pb_test_还没写
+//			//tb_test_ 也还没写
+//			this->number_of_local_basis_test_ = 6;
+//			this->nb_test_ = 2 * (this->n_m_);
+//		}
+//
+//
+//
+//
+//
+//		break;
+//	}
+//	case 4:          //四边形风格
+//	{
+//		this->n_ = N1_ * N2_;
+//		this->t_ = MatrixXi::Zero(4, this->n_);
+//
+//		//第一行
+//		this->t_.col(0) << 1,this->N2_ + 2, this->N2_ + 3,2;
+//		
+//		//竖直方向上赋值
+//		for (int i = 1; i < this->N2_; i++)
+//		{
+//			this->t_.col(i) = this->t_.col(i - 1).array() + 1;
+//		}
+//		
+//		//水平方向
+//		for (int j = 1; j < this->N1_; j++)
+//		{
+//			this->t_.block(0, j * (this->N2_), 4, this->N2_) = this->t_.block(0, (j - 1) * (this->N2_), 4, this->N2_).array() + (this->N2_ + 1);
+//		}
+//
+//
+//		if (this->basis_type_trial_ == 201)   //二维四边形单元线性基函数
+//		{
+//			this->pb_trial_ = this->p_;
+//			this->tb_trial_ = this->t_;
+//			this->number_of_local_basis_trial_ = 4;
+//			this->nb_trial_ = (this->n_m_);
+//		}
+//
+//		if (this->basis_type_test_ == 201)   //二维四边形单元线性基函数
+//		{
+//			this->pb_trial_ = this->p_;
+//			this->tb_trial_ = this->t_;
+//			this->number_of_local_basis_test_ = 4;
+//			this->nb_trial_ = this->n_m_;
+//		}
+//
+//		break;
+//	}
+//
+//	}
+//	
+//
+//	//输出信息
+//	cout << "\tP矩阵为" << endl;
+//	cout << this->p_ << endl;
+//	cout << "\tpb_trial_矩阵为" << endl;
+//	cout << this->pb_trial_ << endl;
+//	cout << "\tpb_test_矩阵为" << endl;
+//	cout << this->pb_test_ << endl;
+//
+//	cout << "\t*****************" << endl;
+//	cout << "\tT矩阵为" << endl;
+//	cout << this->t_<< endl;
+//	cout << "\ttb_test_矩阵为" << endl;
+//	cout << this->tb_test_ << endl;
+//	cout << "\ttb_trial_矩阵为" << endl;
+//	cout << this->tb_trial_<<endl;
+//}
+void  FE_solver_2D::Generate_PT()
 {
-
 	//标准区间P矩阵
 	this->p_ = MatrixXd::Zero(2, this->n_m_);
 	RowVectorXd p2_tmp = VectorXd::LinSpaced(this->N2_ + 1, 0, 1);
 	for (int j = 0; j < (this->N1_ + 1); j++)
 	{
-		this->p_.block(0,j*((this->N2_)+1),1,this->N2_+1)= (this->p_.block(0, j * ((this->N2_) + 1), 1, this->N2_ + 1)).array()+j/((float)(this->N1_));
-		this->p_.block(1, j * ((this->N2_) + 1), 1, this->N2_ + 1)<< p2_tmp;
+		this->p_.block(0, j * ((this->N2_) + 1), 1, this->N2_ + 1) = (this->p_.block(0, j * ((this->N2_) + 1), 1, this->N2_ + 1)).array() + j / ((float)(this->N1_));
+		this->p_.block(1, j * ((this->N2_) + 1), 1, this->N2_ + 1) << p2_tmp;
 
 	}
 
 	//变换到实际区间
-	this->p_.row(0) = this->p_.row(0).array() * (this->b_(0,0) -this->a_(0,0))+this->a_(0,0);
+	this->p_.row(0) = this->p_.row(0).array() * (this->b_(0, 0) - this->a_(0, 0)) + this->a_(0, 0);
 	this->p_.row(1) = this->p_.row(1).array() * (this->b_(1, 0) - this->a_(1, 0)) + this->a_(1, 0);
 
 
 
 	//构建T矩阵
-	switch (mesh_type)//mesh_type:网格类型 3 三角形网格  4 四边形
+	switch (this->mesh_type)//mesh_type:网格类型 3 三角形网格  4 四边形
 	{
 	case 3:          //三角形网格
 	{
@@ -62,7 +212,7 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 
 		//初始化前两个单元
 		this->t_(0, 0) = 1;
-		this->t_(1, 0) = this->N2_+2;
+		this->t_(1, 0) = this->N2_ + 2;
 		this->t_(2, 0) = 2;
 
 		this->t_(0, 1) = 2;
@@ -70,21 +220,59 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 		this->t_(2, 1) = this->N2_ + 3;
 
 		//int i = 2;
-		for (int i=2;i < this->n_;i++)
+		for (int i = 2; i < this->n_; i++)
 		{
-			if(i/(2*this->N2_)==0)
-			for (int j = 0; j < 3; j++)
-			{
-				this->t_(j, i) = this->t_(j, i - 2) + 1;
-			}
+			if (i / (2 * this->N2_) == 0)
+				for (int j = 0; j < 3; j++)
+				{
+					this->t_(j, i) = this->t_(j, i - 2) + 1;
+				}
 			else
 			{
 				for (int j = 0; j < 3; j++)
 				{
-					this->t_(j, i) = this->t_(j, i - 2*(this->N2_)) + 1+this->N2_;
+					this->t_(j, i) = this->t_(j, i - 2 * (this->N2_)) + 1 + this->N2_;
 				}
 			}
 		}
+
+		if (this->basis_type_trial_ == 201)   //二维三角形单元线性基函数
+		{
+			this->pb_trial_ = this->p_;
+			this->tb_trial_ = this->t_;
+
+			this->number_of_local_basis_trial_ = 3;
+			this->nb_trial_ = this->n_m_;
+		}
+		else if (this->basis_type_trial_ == 202)   //二维三角形单元二次基函数
+		{
+			//pb_trial还没写
+			//tb_trail 也还没写
+			this->number_of_local_basis_trial_ = 6;
+			this->nb_trial_ = 2 * (this->n_m_);
+		}
+
+		if (this->basis_type_test_ == 201)
+		{
+			this->pb_test_ = this->p_;
+			this->tb_test_ = this->t_;
+
+			this->number_of_local_basis_test_ = 3;
+			this->nb_test_ = this->n_m_;
+		}
+		else if (this->basis_type_test_ == 202)   //二维二次奇函数
+		{
+
+			//pb_test_还没写
+			//tb_test_ 也还没写
+			this->number_of_local_basis_test_ = 6;
+			this->nb_test_ = 2 * (this->n_m_);
+		}
+
+
+
+
+
 		break;
 	}
 	case 4:          //四边形风格
@@ -93,14 +281,14 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 		this->t_ = MatrixXi::Zero(4, this->n_);
 
 		//第一行
-		this->t_.col(0) << 1,this->N2_ + 2, this->N2_ + 3,2;
-		
+		this->t_.col(0) << 1, this->N2_ + 2, this->N2_ + 3, 2;
+
 		//竖直方向上赋值
 		for (int i = 1; i < this->N2_; i++)
 		{
 			this->t_.col(i) = this->t_.col(i - 1).array() + 1;
 		}
-		
+
 		//水平方向
 		for (int j = 1; j < this->N1_; j++)
 		{
@@ -108,45 +296,25 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 		}
 
 
+		if (this->basis_type_trial_ == 201)   //二维四边形单元线性基函数
+		{
+			this->pb_trial_ = this->p_;
+			this->tb_trial_ = this->t_;
+			this->number_of_local_basis_trial_ = 4;
+			this->nb_trial_ = (this->n_m_);
+		}
+
+		if (this->basis_type_test_ == 201)   //二维四边形单元线性基函数
+		{
+			this->pb_test_ = this->p_;
+			this->tb_test_ = this->t_;
+			this->number_of_local_basis_test_ = 4;
+			this->nb_test_ = this->n_m_;
+		}
+
 		break;
 	}
 
-	}
-	
-	
-	if (this->basis_type_trial_ == 201)   //二维线性奇函数
-	{
-		this->pb_trial_ = this->p_;
-		this->tb_trial_ = this->t_;
-
-		this->number_of_local_basis_trial_ = 3;
-		this->nb_trial_ = this->n_m_;
-	}
-	else if (this->basis_type_trial_ == 202)   //二维二次奇函数
-	{
-		//pb_trial还没写
-		//tb_trail 也还没写
-		this->number_of_local_basis_trial_ = 6;
-		this->nb_trial_ = 2 * (this->n_m_);
-	}
-
-
-
-	if (this->basis_type_test_ == 201)
-	{
-		this->pb_test_ = this->p_;
-		this->tb_test_ = this->t_;
-
-		this->number_of_local_basis_test_ = 3;
-		this->nb_test_ = this->n_m_;
-	}
-	else if (this->basis_type_test_ == 202)   //二维二次奇函数
-	{
-
-		//pb_test_还没写
-		//tb_test_ 也还没写
-		this->number_of_local_basis_test_ = 6;
-		this->nb_test_ = 2 * (this->n_m_);
 	}
 
 
@@ -160,21 +328,17 @@ void FE_solver_2D::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角
 
 	cout << "\t*****************" << endl;
 	cout << "\tT矩阵为" << endl;
-	cout << this->t_<< endl;
+	cout << this->t_ << endl;
 	cout << "\ttb_test_矩阵为" << endl;
 	cout << this->tb_test_ << endl;
 	cout << "\ttb_trial_矩阵为" << endl;
-	cout << this->tb_trial_<<endl;
-}
-void  FE_solver_2D::Generate_PT()
-{
-	//空实现，二维不用这个
+	cout << this->tb_trial_ << endl;
 }
 
-void FE_solver_2D::Generate_BoundaryNodes(int mesh_type)
+void FE_solver_2D::Generate_BoundaryNodes()
 {
 	//生产边界边矩阵
-	Generate_boundary_edge(mesh_type);
+	Generate_boundary_edge();
 
 	//生成边界点矩阵
 	Generate_boundary_nodes();
@@ -182,7 +346,7 @@ void FE_solver_2D::Generate_BoundaryNodes(int mesh_type)
 
 
 //边界边矩阵 （有限元概念）
-void FE_solver_2D::Generate_boundary_edge(int mesh_type)
+void FE_solver_2D::Generate_boundary_edge()
 {
 	//nbe:边界边的条数，nbe=2*N1*N2,网格概念
 	//我们处理狄利克雷等边界条件，是在有限元节点上
@@ -495,7 +659,7 @@ void FE_solver_2D::Compute_Gauss(int n)
 
 MatrixXd FE_solver_2D::Compute_Gauss(int n,int i)
 {
-	//1.找出第i个单元的三个点的坐标
+	//1.找出第i个单元各个顶点坐标
 	MatrixXd vertices_local_cord= Caculate_vertices(i);
 
 	//2.生成标准高斯节点
@@ -503,7 +667,7 @@ MatrixXd FE_solver_2D::Compute_Gauss(int n,int i)
 	MatrixXd local_gauss_weight_nodes= MatrixXd::Zero(3, n);
 	switch (n)
 	{
-	case 3:
+	case 3:		//这是对三角形网格的
 	{
 		//Matrix3d reference_gauss_weight_nodes(3, 3);   //参考高斯权重与节点
 		reference_gauss_weight_nodes << 1 / 6.0, 1 / 6.0, 1 / 6.0,
@@ -511,13 +675,24 @@ MatrixXd FE_solver_2D::Compute_Gauss(int n,int i)
 			0, 1 / 2.0, 1 / 2.0;
 		break;
 	}
-	case 9:
+	case 4:		//这是对四边形网格的
+	{
+		reference_gauss_weight_nodes << 1, 1, 1, 1,
+			-1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3), -1 / sqrt(3),
+			-1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3);
+		//TODO:四边形网络的高斯积分插值还没重写
+
+
+
+		break;
+	}
+	case 9:			//这也是针对三角形网格的
 	{
 		reference_gauss_weight_nodes << 8/ 81.0, 12.5 / 324.0 * (1 - sqrt(3 / 5.0)) , 12.5 / 324.0 * (1 - sqrt(3 / 5.0)) , 12.5 / 324.0 * (1 + sqrt(3 / 5.0)), 12.5 / 324.0 * (1 + sqrt(3 / 5.0)), \
 			5 / 81.0, 5 / 81.0, 5/ 81.0 * (1 - sqrt(3 / 5.0)) , 5/ 81.0 * (1 + sqrt(3 / 5.0)),
 			0.5, (1 + sqrt(3 / 5.0)) / 2.0, (1 + sqrt(3 / 5.0)) / 2.0, (1 - sqrt(3 / 5.0)) / 2.0, (1 - sqrt(3 / 5.0)) / 2.0, 0.5, 0.5, (1 + sqrt(3 / 5.0)) / 2.0, (1 - sqrt(3 / 5.0)) / 2.0,
 			0.25, 0.1, (1 - sqrt(3 / 5.0))* (1 - sqrt(3 / 5.0)) / 4.0, (1 + sqrt(3 / 5.0))* (1 + sqrt(3 / 5.0)) / 4.0, 0.1,  (1 + sqrt(3 / 5.0)) / 4.0,  (1 - sqrt(3 / 5.0)) / 4.0, (1 - sqrt(3 / 5.0)) / 4.0, (1 + sqrt(3 / 5.0)) / 4.0;
-	
+		break;
 	}
 	}
 
@@ -543,133 +718,217 @@ MatrixXd FE_solver_2D::Compute_Gauss(int n,int i)
 
 double FE_solver_2D::FE_basis_local_fun_test(double x, double y,int n,int basis_index, int basis_der_x,int basis_der_y)
 {
-	//1.算出第n个单元的三个节点坐标
+	//1.算出第n个单元的节点坐标
 	MatrixXd local_vertical = Caculate_vertices(n);
-	double jacobi;
-	double local_result;
-	double xn1 = local_vertical(0, 0);
-	double xn2 = local_vertical(0, 1);
-	double xn3 = local_vertical(0, 2);
-	double yn1 = local_vertical(1, 0);
-	double yn2 = local_vertical(1, 1);
-	double yn3 = local_vertical(1, 2);
+	double local_result=0.0;
+	if (local_vertical.row(0).size() == 3)		//三角形单元
+	{
+		double jacobi;
+		double xn1 = local_vertical(0, 0);
+		double xn2 = local_vertical(0, 1);
+		double xn3 = local_vertical(0, 2);
+		double yn1 = local_vertical(1, 0);
+		double yn2 = local_vertical(1, 1);
+		double yn3 = local_vertical(1, 2);
 
-	jacobi = (xn2 - xn1) * (yn3 - yn1) - (xn3 - xn1) * (yn2 - yn1);
+		jacobi = (xn2 - xn1) * (yn3 - yn1) - (xn3 - xn1) * (yn2 - yn1);
 
-	//2.把local的xi,yi转换成 reference的xh,yh
-	double xh = ((yn3 - yn1) * (x - xn1) - (xn3 - xn1) * (y - yn1)) / jacobi;
-	double yh = (-(yn2 - yn1) * (x - xn1) + (xn2 - xn1) * (y - yn1)) / jacobi;
+		//2.把local的xi,yi转换成 reference的xh,yh
+		double xh = ((yn3 - yn1) * (x - xn1) - (xn3 - xn1) * (y - yn1)) / jacobi;
+		double yh = (-(yn2 - yn1) * (x - xn1) + (xn2 - xn1) * (y - yn1)) / jacobi;
 
-	//3.用φh(xh,yh)=φ(x,y) 把局部基函数映射到参考基函数下计算
-	if (basis_der_x == 0 && basis_der_y == 0)
-	{
-		local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y);
-	}
-	else if (basis_der_x == 1 && basis_der_y == 0)
-	{
-		local_result = ((yn3 - yn1) / jacobi) * reference_basis_2D(xh, yh, basis_index, 1, 0) + \
-			((yn1 - yn2) / jacobi) * reference_basis_2D(xh, yh, basis_index, 0, 1);
-	}
-	else if (basis_der_x == 0 && basis_der_y == 1)
-	{
-		local_result = ((xn1 - xn3) * reference_basis_2D(xh, yh, basis_index, 1, 0) + reference_basis_2D(xh, yh, basis_index, 0, 1) * (xn2 - xn1)) / jacobi;
-	}
-	else if (basis_der_x == 1 && basis_der_y == 1)
-	{
-		local_result = \
-			(reference_basis_2D(xh, yh, basis_index, 2, 0) * (xn1 - xn3) * (yn3 - yn1) + \
-				reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn1 - xn3) * (yn1 - yn2) + \
-				reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn2 - xn1) * (yn3 - yn1) + \
-				reference_basis_2D(xh, yh, basis_index, 0, 2) * (xn2 - xn1) * (yn1 - yn2)\
-				) / (pow(jacobi, 2));
-	}
+		//3.用φh(xh,yh)=φ(x,y) 把局部基函数映射到参考基函数下计算
+		if (basis_der_x == 0 && basis_der_y == 0)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y);
+		}
+		else if (basis_der_x == 1 && basis_der_y == 0)
+		{
+			local_result = ((yn3 - yn1) / jacobi) * reference_basis_2D(xh, yh, basis_index, 1, 0) + \
+				((yn1 - yn2) / jacobi) * reference_basis_2D(xh, yh, basis_index, 0, 1);
+		}
+		else if (basis_der_x == 0 && basis_der_y == 1)
+		{
+			local_result = ((xn1 - xn3) * reference_basis_2D(xh, yh, basis_index, 1, 0) + reference_basis_2D(xh, yh, basis_index, 0, 1) * (xn2 - xn1)) / jacobi;
+		}
+		else if (basis_der_x == 1 && basis_der_y == 1)
+		{
+			local_result = \
+				(reference_basis_2D(xh, yh, basis_index, 2, 0) * (xn1 - xn3) * (yn3 - yn1) + \
+					reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn1 - xn3) * (yn1 - yn2) + \
+					reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn2 - xn1) * (yn3 - yn1) + \
+					reference_basis_2D(xh, yh, basis_index, 0, 2) * (xn2 - xn1) * (yn1 - yn2)\
+					) / (pow(jacobi, 2));
+		}
+		else if (basis_der_x == 2 && basis_der_y == 0)
+		{
+			local_result = \
+				(reference_basis_2D(xh, yh, basis_index, 2, 0) * (pow((yn3 - yn1), 2)) + \
+					3 * reference_basis_2D(xh, yh, basis_index, 1, 1) * (yn1 - yn2) * (yn3 - yn1) + \
+					reference_basis_2D(xh, yh, basis_index, 0, 2) * (pow((yn1 - yn2), 2)) \
+					) / (pow(jacobi, 2));
 
-	else if (basis_der_x == 2 && basis_der_y == 0)
-	{
-		local_result = \
-			(reference_basis_2D(xh, yh, basis_index, 2, 0) * (pow((yn3 - yn1), 2)) + \
-				3 * reference_basis_2D(xh, yh, basis_index, 1, 1) * (yn1 - yn2) * (yn3 - yn1) + \
-				reference_basis_2D(xh, yh, basis_index, 0, 2) * (pow((yn1 - yn2), 2)) \
-				) / (pow(jacobi, 2));
-
+		}
+		else if (basis_der_x == 0 && basis_der_y == 2)
+		{
+			local_result = \
+				(reference_basis_2D(xh, yh, basis_index, 2, 0) * (pow((xn3 - xn1), 2)) + \
+					3 * reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn1 - xn3) * (xn2 - xn1) + \
+					reference_basis_2D(xh, yh, basis_index, 0, 2) * (pow((xn1 - xn2), 2)) \
+					) / (pow(jacobi, 2));
+		}
+		else {
+			local_result = 0;
+		}
 	}
-	else if (basis_der_x == 0 && basis_der_y == 2)
+	else if (local_vertical.row(0).size() == 4)	//	四边形单元
 	{
-		local_result = \
-			(reference_basis_2D(xh, yh, basis_index, 2, 0) * (pow((xn3 - xn1), 2)) + \
-				3 * reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn1 - xn3) * (xn2 - xn1) + \
-				reference_basis_2D(xh, yh, basis_index, 0, 2) * (pow((xn1 - xn2), 2)) \
-				) / (pow(jacobi, 2));
+		double xn1 = local_vertical(0, 0);
+		double xn2 = local_vertical(0, 1);
+		double xn3 = local_vertical(0, 2);
+		double xn4 = local_vertical(0, 3);
+		double yn1 = local_vertical(1, 0);
+		double yn2 = local_vertical(1, 1);
+		double yn3 = local_vertical(1, 2);
+		double yn4 = local_vertical(1, 3);
+
+		double h1 = xn2 - xn1;
+		double h2 = yn4 - yn1;
+
+		double xh = (2 * x - 2 * xn1 - h1) / h1;
+		double yh = (2 * y - 2 * yn1 - h2) / h2;
+
+		if (basis_der_x == 0 && basis_der_y == 0)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y);
+		}
+		else if (basis_der_x == 1 && basis_der_y == 0)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y) * 2 / h1;
+		}
+		else if (basis_der_x == 0 && basis_der_y == 1)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y) * 2 / h2;;
+		}
+		else if (basis_der_x == 1 && basis_der_y == 1)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y) * 4 / (h1 * h2);
+		}
+		else
+		{
+			local_result = 0;
+		}
+
 	}
 
 	return local_result;
-
-	//
 }
 double FE_solver_2D::FE_basis_local_fun_trial(double x, double y,int n,int basis_index, int basis_der_x, int basis_der_y)
 {
-	//1.算出第n个单元的三个节点坐标
+	//1.算出第n个单元的节点坐标
 	MatrixXd local_vertical = Caculate_vertices(n);	
-	double jacobi;
-	double local_result;
-	double xn1 = local_vertical(0, 0);
-	double xn2 = local_vertical(0, 1);
-	double xn3 = local_vertical(0, 2);
-	double yn1 = local_vertical(1, 0);
-	double yn2 = local_vertical(1, 1);
-	double yn3 = local_vertical(1, 2);
+	double local_result=0.0;
+	if (local_vertical.row(0).size() == 3)		//三角形单元
+	{
+		double jacobi;
+		double xn1 = local_vertical(0, 0);
+		double xn2 = local_vertical(0, 1);
+		double xn3 = local_vertical(0, 2);
+		double yn1 = local_vertical(1, 0);
+		double yn2 = local_vertical(1, 1);
+		double yn3 = local_vertical(1, 2);
 
-	jacobi = (xn2 - xn1) * (yn3 - yn1) - (xn3 - xn1) * (yn2 - yn1);
+		jacobi = (xn2 - xn1) * (yn3 - yn1) - (xn3 - xn1) * (yn2 - yn1);
 
-	//2.把local的xi,yi转换成 reference的xh,yh
-	double xh = ((yn3 - yn1) * (x - xn1) - (xn3 - xn1) * (y - yn1)) / jacobi;
-	double yh = (-(yn2 - yn1) * (x - xn1) + (xn2 - xn1) * (y - yn1)) / jacobi;
+		//2.把local的xi,yi转换成 reference的xh,yh
+		double xh = ((yn3 - yn1) * (x - xn1) - (xn3 - xn1) * (y - yn1)) / jacobi;
+		double yh = (-(yn2 - yn1) * (x - xn1) + (xn2 - xn1) * (y - yn1)) / jacobi;
 
-	//3.用φh(xh,yh)=φ(x,y) 把局部基函数映射到参考基函数下计算
-	if (basis_der_x == 0 && basis_der_y == 0)
-	{
-		local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y);
-	}
-	else if (basis_der_x == 1 && basis_der_y == 0)
-	{
-		local_result = ((yn3 - yn1) / jacobi) * reference_basis_2D(xh, yh, basis_index, 1, 0) + \
-			((yn1 - yn2) / jacobi) * reference_basis_2D(xh, yh, basis_index, 0, 1);
-	}
-	else if (basis_der_x == 0 && basis_der_y == 1)
-	{
-		local_result = ((xn1 - xn3) * reference_basis_2D(xh, yh, basis_index, 1, 0) + reference_basis_2D(xh, yh, basis_index, 0, 1) * (xn2 - xn1)) / jacobi;
-	}
-	else if (basis_der_x == 1 && basis_der_y == 1)
-	{
-		local_result = \
-			(reference_basis_2D(xh, yh, basis_index, 2, 0) * (xn1 - xn3) * (yn3 - yn1) + \
-				reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn1 - xn3) * (yn1 - yn2) + \
-				reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn2 - xn1) * (yn3 - yn1) + \
-				reference_basis_2D(xh, yh, basis_index, 0, 2) * (xn2 - xn1) * (yn1 - yn2)\
-				) / (pow(jacobi, 2));
-	}
+		//3.用φh(xh,yh)=φ(x,y) 把局部基函数映射到参考基函数下计算
+		if (basis_der_x == 0 && basis_der_y == 0)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y);
+		}
+		else if (basis_der_x == 1 && basis_der_y == 0)
+		{
+			local_result = ((yn3 - yn1) / jacobi) * reference_basis_2D(xh, yh, basis_index, 1, 0) + \
+				((yn1 - yn2) / jacobi) * reference_basis_2D(xh, yh, basis_index, 0, 1);
+		}
+		else if (basis_der_x == 0 && basis_der_y == 1)
+		{
+			local_result = ((xn1 - xn3) * reference_basis_2D(xh, yh, basis_index, 1, 0) + reference_basis_2D(xh, yh, basis_index, 0, 1) * (xn2 - xn1)) / jacobi;
+		}
+		else if (basis_der_x == 1 && basis_der_y == 1)
+		{
+			local_result = \
+				(reference_basis_2D(xh, yh, basis_index, 2, 0) * (xn1 - xn3) * (yn3 - yn1) + \
+					reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn1 - xn3) * (yn1 - yn2) + \
+					reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn2 - xn1) * (yn3 - yn1) + \
+					reference_basis_2D(xh, yh, basis_index, 0, 2) * (xn2 - xn1) * (yn1 - yn2)\
+					) / (pow(jacobi, 2));
+		}
+		else if (basis_der_x == 2 && basis_der_y == 0)
+		{
+			local_result = \
+				(reference_basis_2D(xh, yh, basis_index, 2, 0) * (pow((yn3 - yn1), 2)) + \
+					3 * reference_basis_2D(xh, yh, basis_index, 1, 1) * (yn1 - yn2) * (yn3 - yn1) + \
+					reference_basis_2D(xh, yh, basis_index, 0, 2) * (pow((yn1 - yn2), 2)) \
+					) / (pow(jacobi, 2));
 
-	else if (basis_der_x == 2 && basis_der_y == 0)
-	{
-		local_result = \
-			(reference_basis_2D(xh, yh, basis_index, 2, 0) * (pow((yn3 - yn1), 2)) + \
-				3 * reference_basis_2D(xh, yh, basis_index, 1, 1) * (yn1 - yn2) * (yn3 - yn1) + \
-				reference_basis_2D(xh, yh, basis_index, 0, 2) * (pow((yn1 - yn2), 2)) \
-				) / (pow(jacobi, 2));
-
+		}
+		else if (basis_der_x == 0 && basis_der_y == 2)
+		{
+			local_result = \
+				(reference_basis_2D(xh, yh, basis_index, 2, 0) * (pow((xn3 - xn1), 2)) + \
+					3 * reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn1 - xn3) * (xn2 - xn1) + \
+					reference_basis_2D(xh, yh, basis_index, 0, 2) * (pow((xn1 - xn2), 2)) \
+					) / (pow(jacobi, 2));
+		}
+		else {
+			local_result = 0;
+		}
 	}
-	else if (basis_der_x == 0 && basis_der_y == 2)
+	else if (local_vertical.row(0).size() == 4)	//	四边形单元
 	{
-		local_result = \
-			(reference_basis_2D(xh, yh, basis_index, 2, 0) * (pow((xn3 - xn1), 2)) + \
-				3 * reference_basis_2D(xh, yh, basis_index, 1, 1) * (xn1 - xn3) * (xn2 - xn1) + \
-				reference_basis_2D(xh, yh, basis_index, 0, 2) * (pow((xn1 - xn2), 2)) \
-				) / (pow(jacobi, 2));
+		double xn1 = local_vertical(0, 0);
+		double xn2 = local_vertical(0, 1);
+		double xn3 = local_vertical(0, 2);
+		double xn4 = local_vertical(0, 3);
+		double yn1 = local_vertical(1, 0);
+		double yn2 = local_vertical(1, 1);
+		double yn3 = local_vertical(1, 2);
+		double yn4 = local_vertical(1, 3);
+
+		double h1 = xn2 - xn1;
+		double h2 = yn4 - yn1;
+
+		double xh = (2 * x - 2 * xn1 - h1) / h1;
+		double yh = (2 * y - 2 * yn1 - h2) / h2;
+
+		if (basis_der_x == 0 && basis_der_y == 0)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y);
+		}
+		else if (basis_der_x == 1 && basis_der_y == 0)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y) * 2 / h1;
+		}
+		else if (basis_der_x == 0 && basis_der_y == 1)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y) * 2 / h2;;
+		}
+		else if (basis_der_x == 1 && basis_der_y == 1)
+		{
+			local_result = reference_basis_2D(xh, yh, basis_index, basis_der_x, basis_der_y) * 4 / (h1 * h2);
+		}
+		else
+		{
+			local_result = 0;
+		}
+
 	}
 
 	return local_result;
-
-	//
 
 }
 
@@ -681,13 +940,13 @@ void FE_solver_2D::Print_message_normal()
  }
 
 
-double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, int basis_der_x,int basis_der_y)  //参考局部奇函数
+double FE_solver_2D::reference_basis_2D(double xh, double yh, int basis_index, int basis_der_x, int basis_der_y)  //参考局部奇函数
 {
 
-	if (this->basis_type_test_ == 201)        //二维线性函数  ppt  32/103
+	if (this->basis_type_test_ == 201 && mesh_type==3)        //二维线性函数  ppt  32/103
 	{
-		if(basis_index==0)
-		{ 
+		if (basis_index == 0)
+		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
 				return -xh - yh + 1;
@@ -705,7 +964,7 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 				return 0;
 			}
 		}
-		else if(basis_index==1)
+		else if (basis_index == 1)
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
@@ -737,14 +996,14 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		}
 
 	}
-	else if (this->basis_type_test_ == 202)      //二维二次函数   ppt53/103
+	else if (this->basis_type_test_ == 202 && mesh_type==3)      //二维二次函数   ppt53/103
 	{
 
 		if (basis_index == 0)
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
-				return 2 * pow(xh , 2) + 2 * pow(yh , 2)+4*xh*yh-3*yh-3*xh+1;
+				return 2 * pow(xh, 2) + 2 * pow(yh, 2) + 4 * xh * yh - 3 * yh - 3 * xh + 1;
 			}
 			else if (basis_der_x == 1 && basis_der_y == 0)
 			{
@@ -776,7 +1035,7 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
-				return 2 * pow(xh, 2) -  xh ;
+				return 2 * pow(xh, 2) - xh;
 			}
 			else if (basis_der_x == 1 && basis_der_y == 0)
 			{
@@ -817,11 +1076,11 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
-				return -4 * pow(xh, 2) - 4*xh*yh+4*xh;
+				return -4 * pow(xh, 2) - 4 * xh * yh + 4 * xh;
 			}
 			else if (basis_der_x == 1 && basis_der_y == 0)
 			{
-				return -8 * xh - -4*yh+4;
+				return -8 * xh - -4 * yh + 4;
 			}
 			else if (basis_der_x == 0 && basis_der_y == 1)
 			{
@@ -841,7 +1100,7 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		{
 			if (basis_der_x == 0 && basis_der_y == 0)
 			{
-				return 4*xh*yh;
+				return 4 * xh * yh;
 			}
 			else if (basis_der_x == 1 && basis_der_y == 0)
 			{
@@ -859,27 +1118,122 @@ double FE_solver_2D::reference_basis_2D(double xh, double yh ,int basis_index, i
 		}
 		else if (basis_index == 5)
 		{
-		if (basis_der_x == 0 && basis_der_y == 0)
-		{
-			return -4 * pow(yh, 2) - 4 * xh * yh + 4 * yh;
-		}
-		else if (basis_der_x == 0 && basis_der_y == 1)
-		{
-			return -8 * yh - -4 * xh + 4;
-		}
-		else if (basis_der_x == 1 && basis_der_y == 0)
-		{
-			return -4 * yh;
-		}
+			if (basis_der_x == 0 && basis_der_y == 0)
+			{
+				return -4 * pow(yh, 2) - 4 * xh * yh + 4 * yh;
+			}
+			else if (basis_der_x == 0 && basis_der_y == 1)
+			{
+				return -8 * yh - -4 * xh + 4;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 0)
+			{
+				return -4 * yh;
+			}
 
-		else if (basis_der_x == 0 && basis_der_y == 2)
-		{
-			return -8;
+			else if (basis_der_x == 0 && basis_der_y == 2)
+			{
+				return -8;
+			}
+			else
+			{
+				return 0;
+			}
 		}
-		else
+	}
+	else if (this->basis_type_test_ == 201 && mesh_type==4)  //双线性基函数
+	{
+		if (basis_index == 0)
 		{
-			return 0;
+			if (basis_der_x == 0 && basis_der_y == 0)
+			{
+				return (1 - xh - yh + xh * yh) / 4.0;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 0)
+			{
+				return (yh - 1) / 4.0;
+			}
+			else if (basis_der_x == 0 && basis_der_y == 1)
+			{
+				return (xh - 1) / 4.0;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 1)
+			{
+				return 1 / 4.0;
+			}
+			else
+			{
+				return 0;
+			}
 		}
+		else if (basis_index == 1)
+		{
+			if (basis_der_x == 0 && basis_der_y == 0)
+			{
+				return (1 + xh - yh - xh * yh) / 4.0;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 0)
+			{
+				return (-yh + 1) / 4.0;
+			}
+			else if (basis_der_x == 0 && basis_der_y == 1)
+			{
+				return (-xh - 1) / 4.0;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 1)
+			{
+				return -1 / 4.0;
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		else if (basis_index == 2)
+		{
+			if (basis_der_x == 0 && basis_der_y == 0)
+			{
+				return (1 + xh + yh + xh * yh) / 4.0;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 0)
+			{
+				return (yh + 1) / 4.0;
+			}
+			else if (basis_der_x == 0 && basis_der_y == 1)
+			{
+				return (xh + 1) / 4.0;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 1)
+			{
+				return 1 / 4.0;
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		else if (basis_index == 3)
+		{
+			if (basis_der_x == 0 && basis_der_y == 0)
+			{
+				return (1 - xh + yh - xh * yh) / 4.0;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 0)
+			{
+				return (-yh - 1) / 4.0;
+			}
+			else if (basis_der_x == 0 && basis_der_y == 1)
+			{
+				return (-xh + 1) / 4.0;
+			}
+			else if (basis_der_x == 1 && basis_der_y == 1)
+			{
+				return -1 / 4.0;
+			}
+			else
+			{
+				return 0;
+			}
 		}
 	}
 }
@@ -891,16 +1245,25 @@ MatrixXd FE_solver_2D::Caculate_vertices(int n)
 
 	MatrixXd local_cord;
 
-	if (this->basis_type_trial_ == 201)
+	if (this->basis_type_trial_ == 201 && this->mesh_type==3)
 	{
 		local_cord = MatrixXd::Zero(2, 3);
 		local_cord.col(0) = this->p_.col(this->t_(0, n) - 1);
 		local_cord.col(1) = this->p_.col(this->t_(1, n) - 1);
 		local_cord.col(2) = this->p_.col(this->t_(2, n) - 1);
 	}
-	else if (this->basis_type_trial_ == 202)
+	else if (this->basis_type_trial_ == 202 && this->mesh_type==3)
 	{
 		local_cord = MatrixXd::Zero(2, 6);
+	}
+	else if (this->basis_type_trial_ == 201 && this->mesh_type==4)
+	{
+		local_cord = MatrixXd::Zero(2,4);
+		local_cord.col(0) = this->p_.col(this->t_(0, n) - 1);
+		local_cord.col(1) = this->p_.col(this->t_(1, n) - 1);
+		local_cord.col(2) = this->p_.col(this->t_(2, n) - 1);
+		local_cord.col(3) = this->p_.col(this->t_(3, n) - 1);
+
 	}
 	return local_cord;
 
@@ -1114,8 +1477,6 @@ MatrixXd FE_solver_2D::Compute_neumann_line_Gauss(double a, double b)
 }
 
 
-
-
 double FE_solver_2D::Cx(double x,double y)
 {
 	return 1;
@@ -1187,8 +1548,8 @@ double FE_solver_2D::Real_Ux(double x, double y)
 
 void FE_solver_2D::autoRun()
 {
-	Generate_PT(3);
-	Generate_BoundaryNodes(3);
+	Generate_PT();
+	Generate_BoundaryNodes();
 	Assemble_matrix_A();
 	Assemble_b();
 	Treat_Boundary_Neumann();

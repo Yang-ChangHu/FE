@@ -20,7 +20,7 @@ void test_1D()
 	//一维有限元
 	fe = new FE_solver_1D(0, 1, 4, 1, 0.0, cos(1), 101, 101, 11);
 	fe->Generate_PT();
-	fe->Generate_BoundaryNodes(4);
+	fe->Generate_BoundaryNodes();
 	fe->Print_message_normal();
 	fe->Assemble_matrix_A();
 	fe->Assemble_b();
@@ -35,7 +35,7 @@ void test_1D()
 void test_2D()
 {
 	FE_solver* fe = NULL;
-	fe = new FE_solver_2D(4,4,1,-1,-1,1,1,201,201);
+	fe = new FE_solver_2D(16,16,4,-1,-1,1,1,201,201);
 	//int N1_, int N2_, int gauss_type_, double a_x, double a_y, double b_x, double b_y, int basis_type_trial_, int basis_type_test_,
 	fe->autoRun();
 

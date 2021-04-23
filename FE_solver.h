@@ -27,10 +27,14 @@ public:
 	virtual void Generate_PT()=0;
 
 	//重载虚函数，因为二维网格类型有三角形和四边形
-	virtual void Generate_PT(int mesh_type) = 0;
+	//virtual void Generate_PT(int mesh_type) = 0;
+
 
 	//设定边界条件
-	virtual void Generate_BoundaryNodes(int mesh_type)=0;
+	virtual void Generate_BoundaryNodes()=0;
+
+	//设定边界条件
+	//virtual void Generate_BoundaryNodes(int mesh_type)=0;
 
 	//组装A矩阵
 	virtual void Assemble_matrix_A()=0;
@@ -76,13 +80,26 @@ public:
 	//2D:右上边界值
 	double gb_;
 
-
+	//网格类型
+	//对一维没用
+	//对二维 3：三角形网格 ，4：四边形网格
+	int mesh_type;
 
 
 	//试验函数基函数类型
+	//101:一维线性基函数  
+	//102:一维二次基函数
+	//201:二维三角形单元线性基函数
+	//202：二维三角形二次基函数
+	//203：二维四边形单元线性基函数
 	int basis_type_trial_;
 
 	//测试函数基函数类型
+	//101:一维线性基函数  
+	//102:一维二次基函数
+	//201:二维三角形单元线性基函数
+	//202：二维三角形二次基函数
+	//203：二维四边形单元线性基函数
 	int basis_type_test_;
 	 
 	//边界类型  11:Dirichlet-Dirichlet，12：Dirichlet-Neumann，13：Dirichlet-Robin
@@ -138,15 +155,19 @@ public:
 	//局部基trial函数数量 节点数
 	//一维线性：2
 	//一维二次：3
-	//二维线性：3
-	//二维二次：6
+	//二维三角形单元线性：3
+	//二维三角形单元二次：6
+	//二维四边形单元线性：4
+	//二维四边形单元二次：8
 	int number_of_local_basis_trial_;
 
 	//局部基test函数数量 节点数
 	//一维线性：2
 	//一维二次：3
-	//二维线性：3
-	//二维二次：6
+	//二维三角形单元线性：3
+	//二维三角形单元二次：6
+	//二维四边形单元线性：4
+	//二维四边形单元二次：8
 	int number_of_local_basis_test_;
 
 	//基函数类别,就是1：区间内单调递减，2：区间内    单调递增

@@ -105,15 +105,10 @@ void FE_solver_1D::Generate_PT()            //virtual关键字在这就不需要了
 
 }
 
-void FE_solver_1D::Generate_PT(int mesh_type)
-{
-	//空实现，在一维中无意义
-}
-
 
 
 //设定边界条件
-void FE_solver_1D::Generate_BoundaryNodes(int mesh_type)
+void FE_solver_1D::Generate_BoundaryNodes()
 {
 	
 	//Dirichlet:1  Neumann :2   Robin:3

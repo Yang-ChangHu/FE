@@ -37,7 +37,7 @@ FE_solver_2D_heat::FE_solver_2D_heat(double start, double end, double dt, int N1
 	this->number_of_gauss_points = 9;    //高斯插值点个数为9
 }
 
-void FE_solver_2D_heat::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 三角形网格  4 四边形
+void FE_solver_2D_heat::Generate_PT()  //mesh_type:网格类型 3 三角形网格  4 四边形
 {
 	switch (mesh_type)
 	{
@@ -166,12 +166,9 @@ void FE_solver_2D_heat::Generate_PT(int mesh_type)  //mesh_type:网格类型 3 �
 	cout << "\ttb_trial_矩阵为" << endl;
 	cout << this->tb_trial_ << endl;
 }
-void  FE_solver_2D_heat::Generate_PT()
-{
-	//空实现，二维不用这个
-}
 
-void FE_solver_2D_heat::Generate_BoundaryNodes(int mesh_type)
+
+void FE_solver_2D_heat::Generate_BoundaryNodes()
 {
 	//生产边界边矩阵
 	Generate_boundary_edge();
@@ -1004,8 +1001,8 @@ double FE_solver_2D_heat::Real_Ux(double x, double y, double t)
 
 void FE_solver_2D_heat::autoRun()
 {
-	Generate_PT(4);
-	Generate_BoundaryNodes(4);
+	Generate_PT();
+	Generate_BoundaryNodes();
 	Assemble_matrix_A();
 	
 	Assemble_X_init();
