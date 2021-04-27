@@ -9,25 +9,24 @@ Description:一维有限元求解器 派生类
 #include<iostream>
 #include<string>
 #include <Eigen/Dense>
-using namespace Eigen;     // 改成这样亦可 using Eigen::MatrixXd; 
+using namespace Eigen;     // 改成这样亦可 using Eigen::MatrixXd;
 #include<iostream>
 using namespace std;
 //using namespace cv;
 #include"FE_solver.h"
 
 //一维求解器类
-class FE_solver_1D:public FE_solver
+class FE_solver_1D :public FE_solver
 {
 public:
 
 	//FE_solver_1D构造函数
-	FE_solver_1D(int a_,int b_,int n_,int gauss_type_,double ga_,double gb_,int basis_type_trial_,int basis_type_test_,int boundary_,double qbub_=0);
+	FE_solver_1D(int a_, int b_, int n_, int gauss_type_, double ga_, double gb_, int basis_type_trial_, int basis_type_test_, int boundary_, double qbub_ = 0);
 
 	virtual void autoRun();
 
 	//计算P、Pb_trial、Pb_test:
 	virtual void Generate_PT();            //子类重写父类的虚函数或者纯虚函数，virtual关键字可删除也可不删除
-
 
 	//设定边界条件
 	virtual void Generate_BoundaryNodes();
@@ -42,7 +41,7 @@ public:
 	virtual void Treat_Boundary_Dirichlet();
 
 	//处理neumann边界条件
-	virtual void Treat_Boundary_Neumann() ;
+	virtual void Treat_Boundary_Neumann();
 
 	//处理Robin边界条件
 	virtual void Treat_Boundary_Robin();
@@ -54,21 +53,16 @@ public:
 	virtual void Compute_Error();
 
 	//trial基函数
-	 double FE_basis_local_fun_trial(double x, int basis_index, int basis_der_x);
-
-
+	double FE_basis_local_fun_trial(double x, int basis_index, int basis_der_x);
 
 	//test基函数
-	 double FE_basis_local_fun_test(double x, int basis_index, int basis_der_x);
-
+	double FE_basis_local_fun_test(double x, int basis_index, int basis_der_x);
 
 	//计算高斯积分的权重和节点
 	virtual void Compute_Gauss(int n);
 
 	//显示基本信息
 	virtual void Print_message_normal();
-
-
 
 	//c(x)
 	double  Cx(double x);
@@ -77,10 +71,10 @@ public:
 	double fx(double x);
 
 	//计算trial_test高斯积分
-	double Gauss_qual_trial_test( int alpha, int belta) ;
+	double Gauss_qual_trial_test(int alpha, int belta);
 
 	//计算fx_test高斯积分
-	double Gauss_qual_fx_test( int belta);
+	double Gauss_qual_fx_test(int belta);
 
 	//真实u（x）值
 	double Real_Ux(double x);
@@ -93,7 +87,4 @@ public:
 
 	//trial单元数组 pb_trial
 	RowVectorXd pb_trial_;
-
-
-
 };

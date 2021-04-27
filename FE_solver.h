@@ -10,12 +10,10 @@ Description:有限元求解器的基类
 #include<string>
 #include<math.h>
 #include <Eigen/Dense>
-using namespace Eigen;     // 改成这样亦可 using Eigen::MatrixXd; 
+using namespace Eigen;     // 改成这样亦可 using Eigen::MatrixXd;
 #include<iostream>
 
 using namespace std;
-
-
 
 class FE_solver
 {
@@ -24,26 +22,25 @@ public:
 	virtual void autoRun() = 0;
 
 	//计算P、Pb_trial、Pb_test
-	virtual void Generate_PT()=0;
+	virtual void Generate_PT() = 0;
 
 	//重载虚函数，因为二维网格类型有三角形和四边形
 	//virtual void Generate_PT(int mesh_type) = 0;
 
-
 	//设定边界条件
-	virtual void Generate_BoundaryNodes()=0;
+	virtual void Generate_BoundaryNodes() = 0;
 
 	//设定边界条件
 	//virtual void Generate_BoundaryNodes(int mesh_type)=0;
 
 	//组装A矩阵
-	virtual void Assemble_matrix_A()=0;
+	virtual void Assemble_matrix_A() = 0;
 
 	//组装b向量
-	virtual void Assemble_b()=0;
+	virtual void Assemble_b() = 0;
 
 	//处理Dirichlet边界条件
-	virtual void Treat_Boundary_Dirichlet()=0;
+	virtual void Treat_Boundary_Dirichlet() = 0;
 
 	//处理neumann边界条件
 	virtual void Treat_Boundary_Neumann() = 0;
@@ -51,10 +48,8 @@ public:
 	//处理Robin边界条件
 	virtual void Treat_Boundary_Robin() = 0;
 
-
 	//计算最大误差
-	virtual void Compute_Error()=0;
-
+	virtual void Compute_Error() = 0;
 
 	//计算高斯点
 	virtual void Compute_Gauss(int n) = 0;
@@ -62,15 +57,12 @@ public:
 	//显示基本信息
 	virtual void Print_message_normal() = 0;
 
-
 	void Solution()
 	{
-
 		this->solution_ = MatrixXd::Zero(this->nb_test_, 1);
 		this->solution_ = this->a_matrix_.inverse() * (this->b_vector_);
 		cout << "solution_:" << endl;
 		cout << this->solution_ << endl;
-
 	}
 	//1D:左边界值g(a)
 	//2D:左下边界值
@@ -85,25 +77,21 @@ public:
 	//对二维 3：三角形网格 ，4：四边形网格
 	int mesh_type;
 
-
 	//试验函数基函数类型
-	//101:一维线性基函数  
+	//101:一维线性基函数
 	//102:一维二次基函数
-	//201:二维三角形单元线性基函数
-	//202：二维三角形二次基函数
-	//203：二维四边形单元线性基函数
+	//201:二维单元线性基函数
+	//202：二维二次基函数
 	int basis_type_trial_;
 
 	//测试函数基函数类型
-	//101:一维线性基函数  
+	//101:一维线性基函数
 	//102:一维二次基函数
-	//201:二维三角形单元线性基函数
-	//202：二维三角形二次基函数
-	//203：二维四边形单元线性基函数
+	//201:二维单元线性基函数
 	int basis_type_test_;
-	 
+
 	//边界类型  11:Dirichlet-Dirichlet，12：Dirichlet-Neumann，13：Dirichlet-Robin
-	int boundary_;    
+	int boundary_;
 
 	//高斯类型
 	int gauss_type_;
@@ -119,7 +107,6 @@ public:
 	//边界边数
 	int nbe_;
 
-
 	//1D：左边界a
 	//2D:左下边界
 	ArrayXd a_;
@@ -127,8 +114,6 @@ public:
 	//1D：右边界
 	//2D:右上边界
 	ArrayXd b_;
-
-
 
 	//网格矩阵T_,t_的第i列表示第i个网格单元中节点的全局索引;
 	MatrixXi t_;
@@ -149,7 +134,7 @@ public:
 	MatrixXd b_vector_;
 
 	//第i个网格单元的3/4个顶点的坐标
-	//第i列表示第i个节点的坐标 
+	//第i列表示第i个节点的坐标
 	MatrixXd vertices_;
 
 	//局部基trial函数数量 节点数
@@ -186,7 +171,7 @@ public:
 	int number_of_gauss_points;
 
 	//test函数有限元节点数，用于设定A的行数，线性基函数时，nb=n_m_，二次元时不一样
-	int nb_test_; 
+	int nb_test_;
 
 	//trial函数单元节点数,用于设定A的列数，线性基函数时，nb=n_m_，二次元时不一样
 	int nb_trial_;
