@@ -49,6 +49,20 @@ public:
 	//组装b（tm）.b(tm+1)
 	void Assemble_b(double tm, double tmp1);
 
+
+	/*处理Dirichlet边界条件
+调用：
+		g_boundary:计算边界有限元的真实值*/
+	virtual void Treat_Boundary_Dirichlet();
+
+	/*处理neumann边界条件
+	调用：
+			Gauss_qual_neumann_test_2D:计算在第k条边界边上的c(x,y)*p(x,y)*local_basis_function_test(x,y)积分值*/
+	virtual void Treat_Boundary_Neumann();
+
+	//处理Robin边界条件
+	virtual void Treat_Boundary_Robin();
+
 	void Solution_heat();
 
 	//计算最大误差

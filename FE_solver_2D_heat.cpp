@@ -249,6 +249,81 @@ double FE_solver_2D_heat::Gauss_qual_fxyt_test_2D(int belta, int n, int p, int q
 	return int_value;
 }
 
+
+
+
+
+//在边界有限元节点上有u=g,所以dirichlet边界用的是有限元节点
+void FE_solver_2D_heat::Treat_Boundary_Dirichlet()
+{
+	for (int k = 0; k < this->nbn_; k++)
+	{
+		if (this->boundary_nodes_(0, k) == 1)
+		{
+			int i = this->boundary_nodes_(1, k);
+			this->a_tilde_.row(i - 1).fill(0);             //把某一行赋值成0
+			this->a_tilde_(i - 1, i - 1) = 1;
+			this->b_tilde_(i - 1, 0) = g_boundary(this->pb_test_(0, i - 1), this->pb_test_(1, i - 1));   //这里应该是pb_test_
+		}
+	}
+}
+
+//neumann边界处理
+void FE_solver_2D_heat::Treat_Boundary_Neumann()
+{
+	MatrixXd v = MatrixXd::Zero(this->nb_test_, 1);  //neumann
+
+	for (int k = 0; k < this->nbn_; k++)  //第k条边（从0开始）
+	{
+		if (this->boundary_edges_(0, k) == 2)   //如果第k条边界边是neumann边
+		{
+			int nk = this->boundary_edges_(1, k) - 1;  //nk 第k条边界边对应的单元  第nk个单元（从0开始）
+			for (int belta = 0; belta < this->number_of_local_basis_test_; belta++)
+			{
+				double r = this->Gauss_qual_neumann_test_2D(belta, nk, k, 0, 0);     //对于P96/138 中的r
+				v(this->tb_test_(belta, nk) - 1, 0) = v(this->tb_test_(belta, nk) - 1, 0) + r;
+			}
+		}
+	}
+	this->b_tilde_ = this->b_tilde_.array() + v.array();
+}
+
+void FE_solver_2D_heat::Treat_Boundary_Robin()
+{
+	MatrixXd W = MatrixXd::Zero(this->nb_test_, 1);  //neumann
+	MatrixXd R = MatrixXd::Zero(this->nb_test_, this->nb_trial_);
+
+	for (int k = 0; k < this->nbn_; k++)
+	{
+		if (this->boundary_edges_(0, k) == 3)
+		{
+			int nk = this->boundary_edges_(1, k) - 1;  //nk  第nk个单元（从0开始）
+			for (int belta = 0; belta < this->number_of_local_basis_test_; belta++)
+			{
+				double r1 = this->Gauss_qual_Robin_cq_2D(belta, nk, k, 0, 0);
+				W(this->tb_test_(belta, nk) - 1, 0) = W(this->tb_test_(belta, nk) - 1, 0) + r1;
+			}
+
+			for (int alpha = 0; alpha < this->number_of_local_basis_trial_; alpha++)
+			{
+				for (int belta = 0; belta < this->number_of_local_basis_test_; belta++)
+				{
+					double r2 = this->Gauss_qual_Robin_cr_2D(alpha, belta, nk, k, 0, 0, 0, 0);
+					R(this->tb_test_(belta, nk) - 1, this->tb_test_(alpha, nk) - 1) = R(this->tb_test_(belta, nk) - 1, this->tb_test_(alpha, nk) - 1) + r2;
+				}
+			}
+		}
+	}
+	this->a_tilde_ = this->a_tilde_ + R;
+	this->b_tilde_ = this->b_tilde_ + W;
+
+	//cout << "*******************" << endl;
+	//cout << "边界处理后：a_tilde_ 矩阵" << endl;
+	//cout << this->a_tilde_ << endl;
+	//cout << "边界处理后：b_tilde_ 矩阵" << endl;
+	//cout << this->b_tilde_ << endl;
+}
+
 void FE_solver_2D_heat::autoRun()
 {
 	Generate_PT();

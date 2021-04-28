@@ -1399,7 +1399,7 @@ MatrixXd FE_solver_2D::Compute_neumann_line_Gauss(double a, double b)
 
 double FE_solver_2D::Cx(double x, double y)
 {
-	return 1;
+	return 2;	//	针对p49/183
 }
 
 double FE_solver_2D::Qx(double x, double y)

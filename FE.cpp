@@ -43,7 +43,7 @@ void test_2D()
 void test_2D_heat()
 {
 	FE_solver_2D* fe = NULL;
-	fe = new FE_solver_2D_heat(0, 1, 1 / 4.0, 4, 4, 3, 0, 0, 2, 1, 201, 201);
+	fe = new FE_solver_2D_heat(0, 1, 0.5, 4, 2, 3, 0, 0, 2, 1, 201, 201);
 	//double start, double end, double dt, int N1_, int N2_, int mesh_type_, double a_x, double a_y, double b_x, double b_y, int basis_type_trial_, int basis_type_test_
 	fe->autoRun();
 }
